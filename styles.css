@@ -1,0 +1,172 @@
+/* WebTable Enhancer — styles.css
+   Injected into every page. All selectors are scoped to .wte-* classes
+   to minimise conflicts with existing page styles. */
+
+/* ─── Toast notification ─────────────────────────────────────────────── */
+.wte-toast {
+  position: fixed;
+  bottom: 28px;
+  right: 28px;
+  z-index: 2147483647;
+  padding: 10px 18px;
+  background: #1e293b;
+  color: #f1f5f9;
+  font: 14px/1.5 system-ui, -apple-system, sans-serif;
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, .3);
+  cursor: pointer;
+  white-space: pre-line;
+  animation: wte-in .18s ease;
+  max-width: 320px;
+}
+@keyframes wte-in {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ─── Wrapper (rich table only) ──────────────────────────────────────── */
+.wte-wrap {
+  display: inline-block;
+  max-width: 100%;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 2px 16px rgba(0, 0, 0, .08);
+  font-family: system-ui, -apple-system, sans-serif;
+}
+
+/* ─── Toolbar ────────────────────────────────────────────────────────── */
+.wte-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  background: #f8fafc;
+  border-bottom: 1px solid #e2e8f0;
+}
+.wte-search {
+  flex: 1;
+  min-width: 0;
+  padding: 6px 10px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  font: 14px system-ui, sans-serif;
+  outline: none;
+  transition: border-color .15s, box-shadow .15s;
+}
+.wte-search:focus {
+  border-color: #6366f1;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, .15);
+}
+.wte-counter {
+  font-size: 12px;
+  color: #64748b;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* ─── Rich table ─────────────────────────────────────────────────────── */
+.wte-rich {
+  border-collapse: collapse !important;
+  width: 100% !important;
+  font: 14px/1.5 system-ui, -apple-system, sans-serif !important;
+  color: #1e293b !important;
+}
+
+/* Header cells (th OR td promoted to header) */
+.wte-rich .wte-th {
+  background: #1e293b !important;
+  color: #f1f5f9 !important;
+  padding: 10px 14px !important;
+  text-align: left !important;
+  white-space: nowrap !important;
+  user-select: none !important;
+  cursor: pointer !important;
+  border: none !important;
+}
+.wte-rich .wte-th:hover {
+  background: #334155 !important;
+}
+
+/* Sort arrow indicator */
+.wte-arrow {
+  display: inline-block;
+  margin-left: 6px;
+  font-size: 11px;
+  opacity: .45;
+  transition: opacity .1s;
+}
+.wte-th[data-dir="asc"]  .wte-arrow,
+.wte-th[data-dir="desc"] .wte-arrow { opacity: 1; }
+
+/* Body cells */
+.wte-rich td,
+.wte-rich tbody th {
+  padding: 9px 14px !important;
+  border: none !important;
+  border-bottom: 1px solid #e2e8f0 !important;
+}
+.wte-rich tbody tr:last-child td,
+.wte-rich tbody tr:last-child th {
+  border-bottom: none !important;
+}
+.wte-rich tbody tr:nth-child(even) {
+  background: #f8fafc !important;
+}
+.wte-rich tbody tr:hover {
+  background: #eff6ff !important;
+}
+
+/* ─── Tree table ─────────────────────────────────────────────────────── */
+.wte-tree {
+  border-collapse: collapse !important;
+  font: 14px/1.5 system-ui, -apple-system, sans-serif !important;
+}
+.wte-tree td,
+.wte-tree th {
+  padding: 8px 12px !important;
+  border: 1px solid #e2e8f0 !important;
+}
+.wte-tree thead tr th,
+.wte-tree thead tr td {
+  background: #1e293b !important;
+  color: #f1f5f9 !important;
+  border-color: #334155 !important;
+}
+.wte-tree tbody tr:hover {
+  background: #f0f9ff !important;
+}
+
+/* Toggle button (+/−) */
+.wte-btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 20px !important;
+  height: 20px !important;
+  padding: 0 !important;
+  margin-right: 6px !important;
+  border: 1px solid #94a3b8 !important;
+  border-radius: 4px !important;
+  background: #ffffff !important;
+  color: #475569 !important;
+  font-size: 14px !important;
+  font-weight: bold !important;
+  line-height: 1 !important;
+  cursor: pointer !important;
+  vertical-align: middle !important;
+  flex-shrink: 0 !important;
+  transition: background .12s, color .12s, border-color .12s !important;
+}
+.wte-btn:hover {
+  background: #6366f1 !important;
+  color: #ffffff !important;
+  border-color: #6366f1 !important;
+}
+
+/* Leaf-node spacer (keeps text aligned with toggle-button rows) */
+.wte-spc {
+  display: inline-block !important;
+  width: 26px !important;
+  vertical-align: middle !important;
+}
