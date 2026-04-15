@@ -1,0 +1,21 @@
+{
+  "manifest_version": 3,
+  "name": "WebTable Enhancer",
+  "version": "1.0.0",
+  "description": "Webサイト上のテーブルをリッチ表示・ツリー表示に変換するChrome拡張機能",
+  "permissions": ["contextMenus"],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"],
+      "css": ["styles.css"],
+      "run_at": "document_idle"
+    }
+  ],
+  "action": {
+    "default_title": "WebTable Enhancer"
+  }
+}
