@@ -25,30 +25,6 @@
   --wte-shadow-tst:  0 4px 20px rgba(0, 0, 0, .3);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --wte-bg-header:   #0f172a;
-    --wte-bg-header2:  #1e293b;
-    --wte-bg-toolbar:  #1e293b;
-    --wte-bg-stripe:   #1a2535;
-    --wte-bg-hover:    #1e3a5f;
-    --wte-bg-tree-hov: #172033;
-    --wte-bg-btn:      #1e293b;
-    --wte-text-header: #e2e8f0;
-    --wte-text-body:   #cbd5e1;
-    --wte-text-muted:  #94a3b8;
-    --wte-text-btn:    #94a3b8;
-    --wte-border:      #334155;
-    --wte-border-inp:  #475569;
-    --wte-border-hdr:  #0f172a;
-    --wte-border-btn:  #475569;
-    --wte-accent:      #818cf8;
-    --wte-accent-ring: rgba(129, 140, 248, .25);
-    --wte-shadow-wrap: 0 2px 16px rgba(0, 0, 0, .4);
-    --wte-shadow-tst:  0 4px 20px rgba(0, 0, 0, .6);
-  }
-}
-
 /* ─── Toast notification ─────────────────────────────────────────────── */
 .wte-toast {
   position: fixed;
