@@ -22,5 +22,10 @@ chrome.runtime.onInstalled.addListener(() => {
 });
 
 chrome.contextMenus.onClicked.addListener((info, tab) => {
-  chrome.tabs.sendMessage(tab.id, { action: info.menuItemId });
+  if (!tab?.id) return;
+  chrome.tabs.sendMessage(tab.id, { action: info.menuItemId }, () => {
+    // Suppress "Could not establish connection" errors on restricted pages
+    // (chrome://, edge://, extension pages, etc.)
+    void chrome.runtime.lastError;
+  });
 });

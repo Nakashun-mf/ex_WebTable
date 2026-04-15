@@ -32,8 +32,13 @@ function findTable(el) {
 }
 
 function notify(text) {
+  // Remove any existing toasts before showing a new one
+  document.querySelectorAll('.wte-toast').forEach(t => t.remove());
+
   const el = document.createElement('div');
   el.className = 'wte-toast';
+  el.setAttribute('role', 'status');
+  el.setAttribute('aria-live', 'polite');
   el.textContent = text;
   el.addEventListener('click', () => el.remove());
   document.body.appendChild(el);
@@ -57,9 +62,9 @@ function ensureStructure(table) {
   const allRows = Array.from(table.querySelectorAll(':scope > tr, :scope > tbody > tr'));
   if (!allRows.length) return;
 
-  // Wipe existing anonymous tbodies so we rebuild cleanly
-  while (table.tBodies.length) table.deleteRow(table.tBodies[0].rows[0]?.rowIndex ?? -1);
-  Array.from(table.tBodies).forEach(tb => table.removeChild(tb));
+  // Remove all existing tbody elements directly — avoids the row-index
+  // arithmetic that could cause an infinite loop when a tbody is empty.
+  Array.from(table.tBodies).forEach(tb => tb.remove());
 
   const thead = table.createTHead();
   thead.appendChild(allRows[0]);
@@ -127,12 +132,22 @@ function transformToRich(table) {
     cell.classList.add('wte-th');
     cell.dataset.col = i;
     cell.dataset.dir = '';
+    cell.setAttribute('tabindex', '0');
+    cell.setAttribute('role', 'columnheader');
+    cell.setAttribute('aria-sort', 'none');
     const arrow = Object.assign(document.createElement('span'), {
       className: 'wte-arrow',
+      ariaHidden: 'true',
       textContent: '↕'
     });
     cell.appendChild(arrow);
     cell.addEventListener('click', () => sortBy(table, i));
+    cell.addEventListener('keydown', e => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        sortBy(table, i);
+      }
+    });
   });
 
   // Live search filter
@@ -169,20 +184,38 @@ function sortBy(table, col) {
     h.dataset.dir = '';
     const a = h.querySelector('.wte-arrow');
     if (a) a.textContent = '↕';
+    h.setAttribute('aria-sort', 'none');
   });
 
   th.dataset.dir = next;
   const arrow = th.querySelector('.wte-arrow');
   if (arrow) arrow.textContent = next === 'asc' ? '↑' : next === 'desc' ? '↓' : '↕';
 
-  if (next === '') return; // 3rd click → restore original order not implemented; just reset
-
   const rows = getBodyRows(table);
+
+  if (next === '') {
+    // 3rd click → restore original row order saved at sort-start
+    const originalOrder = table._wteOriginalOrder;
+    if (originalOrder) {
+      // Consolidate all body rows into a single tbody (removes multi-tbody fragmentation)
+      const tbody = table.tBodies[0] ?? table.createTBody();
+      originalOrder.forEach(r => tbody.appendChild(r));
+    }
+    return;
+  }
+
+  // Save original order once per sort session (before first sort)
+  if (!table._wteOriginalOrder) {
+    table._wteOriginalOrder = [...rows];
+  }
+
+  th.setAttribute('aria-sort', next === 'asc' ? 'ascending' : 'descending');
+
   rows.sort((a, b) => cmpCells(a.cells[col], b.cells[col], next === 'asc'));
 
-  // Re-append in sorted order (preserves tbody association)
-  const tbody = table.tBodies[0];
-  if (tbody) rows.forEach(r => tbody.appendChild(r));
+  // Consolidate all body rows into tBodies[0] to handle multi-tbody tables
+  const tbody = table.tBodies[0] ?? table.createTBody();
+  rows.forEach(r => tbody.appendChild(r));
 }
 
 function cmpCells(a, b, asc) {
@@ -232,13 +265,16 @@ function transformToTree(table) {
   const rows = getBodyRows(table);
 
   // Build node list — cells[lvIdx] works for both <th>/<td> body cells
-  const nodes = rows.map(row => ({
-    el:       row,
-    level:    parseInt(row.cells[lvIdx]?.textContent.trim(), 10) || 1,
-    children: [],
-    parent:   null,
-    open:     true
-  }));
+  const nodes = rows.map(row => {
+    const raw = parseInt(row.cells[lvIdx]?.textContent.trim(), 10);
+    return {
+      el:       row,
+      level:    isNaN(raw) || raw < 1 ? 1 : raw,
+      children: [],
+      parent:   null,
+      open:     true
+    };
+  });
 
   // Stack-based O(n) parent-child linking
   const stack = [];
@@ -318,6 +354,7 @@ function resetTable(table) {
   table.classList.remove('wte-rich', 'wte-tree');
   delete table.dataset.wteSnap;
   delete table.dataset.wteStyle;
+  delete table._wteOriginalOrder;
 
   notify('元の表示に戻しました ✓');
 }
