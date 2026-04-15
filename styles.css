@@ -163,7 +163,7 @@
 .wte-rich tbody tr:last-child th {
   border-bottom: none !important;
 }
-.wte-rich tbody tr:nth-child(even) {
+.wte-rich tbody tr.wte-stripe {
   background: var(--wte-bg-stripe) !important;
 }
 .wte-rich tbody tr:hover {

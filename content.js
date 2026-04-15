@@ -151,6 +151,15 @@ function transformToRich(table) {
   });
 
   // Live search filter
+  const applyStripes = () => {
+    let n = 0;
+    getBodyRows(table).forEach(r => {
+      if (!r.hidden) n++;
+      r.classList.toggle('wte-stripe', !r.hidden && n % 2 === 0);
+    });
+  };
+  table._wteApplyStripes = applyStripes;
+
   const refreshCount = () => {
     const rows = getBodyRows(table);
     const vis  = rows.filter(r => !r.hidden).length;
@@ -165,9 +174,11 @@ function transformToRich(table) {
       r.hidden = q !== '' && !r.textContent.toLowerCase().includes(q);
     });
     refreshCount();
+    applyStripes();
   });
 
   refreshCount();
+  applyStripes();
   notify('リッチ表示に変換しました ✓');
 }
 
@@ -201,6 +212,7 @@ function sortBy(table, col) {
       const tbody = table.tBodies[0] ?? table.createTBody();
       originalOrder.forEach(r => tbody.appendChild(r));
     }
+    if (typeof table._wteApplyStripes === 'function') table._wteApplyStripes();
     return;
   }
 
@@ -216,6 +228,7 @@ function sortBy(table, col) {
   // Consolidate all body rows into tBodies[0] to handle multi-tbody tables
   const tbody = table.tBodies[0] ?? table.createTBody();
   rows.forEach(r => tbody.appendChild(r));
+  if (typeof table._wteApplyStripes === 'function') table._wteApplyStripes();
 }
 
 function cmpCells(a, b, asc) {
@@ -300,6 +313,7 @@ function transformToTree(table) {
       btn.className = 'wte-btn';
       btn.textContent = '−';
       btn.title = '折りたたむ';
+      btn.setAttribute('aria-expanded', 'true');
       btn.addEventListener('click', e => { e.stopPropagation(); toggleNode(node, btn); });
       cell.insertBefore(btn, cell.firstChild);
     } else {
@@ -318,6 +332,7 @@ function toggleNode(node, btn) {
   node.open = !closing;
   btn.textContent = closing ? '+' : '−';
   btn.title       = closing ? '展開する' : '折りたたむ';
+  btn.setAttribute('aria-expanded', closing ? 'false' : 'true');
   applyVisibility(node.children, !closing);
 }
 
@@ -355,6 +370,7 @@ function resetTable(table) {
   delete table.dataset.wteSnap;
   delete table.dataset.wteStyle;
   delete table._wteOriginalOrder;
+  delete table._wteApplyStripes;
 
   notify('元の表示に戻しました ✓');
 }
