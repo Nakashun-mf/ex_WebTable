@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Privacy Policy – WebTable Enhancer</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:       #f9fafb;
+      --surface:  #ffffff;
+      --border:   #e5e7eb;
+      --text:     #111827;
+      --muted:    #6b7280;
+      --accent:   #2b6cd4;
+      --accent-h: #1a47a3;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg:      #0f172a;
+        --surface: #1e293b;
+        --border:  #334155;
+        --text:    #f1f5f9;
+        --muted:   #94a3b8;
+        --accent:  #60a5fa;
+        --accent-h:#93c5fd;
+      }
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.7;
+      padding: 2rem 1rem 4rem;
+    }
+
+    .container {
+      max-width: 720px;
+      margin: 0 auto;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 2.5rem 3rem;
+    }
+    @media (max-width: 640px) {
+      .container { padding: 1.5rem 1.25rem; }
+    }
+
+    header { margin-bottom: 2rem; }
+
+    .logo {
+      display: inline-flex;
+      align-items: center;
+      gap: .6rem;
+      margin-bottom: 1.25rem;
+      text-decoration: none;
+    }
+    .logo svg { width: 36px; height: 36px; flex-shrink: 0; }
+    .logo-name {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--accent);
+    }
+
+    h1 {
+      font-size: 1.7rem;
+      font-weight: 700;
+      margin-bottom: .4rem;
+    }
+    .subtitle {
+      color: var(--muted);
+      font-size: .9rem;
+    }
+
+    hr { border: none; border-top: 1px solid var(--border); margin: 2rem 0; }
+
+    h2 {
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin: 2rem 0 .6rem;
+      color: var(--accent);
+    }
+
+    p { margin-bottom: .9rem; }
+
+    ul {
+      padding-left: 1.4rem;
+      margin-bottom: .9rem;
+    }
+    ul li { margin-bottom: .3rem; }
+
+    .highlight {
+      background: color-mix(in srgb, var(--accent) 10%, transparent);
+      border-left: 3px solid var(--accent);
+      border-radius: 0 6px 6px 0;
+      padding: .75rem 1rem;
+      margin: 1rem 0;
+    }
+
+    a { color: var(--accent); }
+    a:hover { color: var(--accent-h); }
+
+    footer {
+      margin-top: 2.5rem;
+      padding-top: 1.25rem;
+      border-top: 1px solid var(--border);
+      font-size: .82rem;
+      color: var(--muted);
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <header>
+    <a class="logo" href="https://github.com/nakashun-mf/ex_webtable">
+      <!-- Table grid icon -->
+      <svg viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <rect width="36" height="36" rx="7" fill="#2B6CD4"/>
+        <rect x="5"  y="5"  width="26" height="26" rx="2" stroke="white" stroke-width="2"/>
+        <line x1="5"  y1="13" x2="31" y2="13" stroke="white" stroke-width="2"/>
+        <line x1="17" y1="5"  x2="17" y2="31" stroke="white" stroke-width="2"/>
+        <line x1="5"  y1="22" x2="31" y2="22" stroke="white" stroke-width="1.5"/>
+      </svg>
+      <span class="logo-name">WebTable Enhancer</span>
+    </a>
+
+    <h1>プライバシーポリシー</h1>
+    <p class="subtitle">Privacy Policy &nbsp;·&nbsp; 最終更新: 2025年1月</p>
+  </header>
+
+  <div class="highlight">
+    <strong>一言でまとめると:</strong> WebTable Enhancer はいかなるデータも収集・送信しません。すべての処理はお使いのブラウザ内で完結します。
+  </div>
+
+  <hr>
+
+  <h2>1. 収集する情報</h2>
+  <p>WebTable Enhancer は、ユーザーの個人情報・閲覧データ・その他いかなる情報も収集しません。</p>
+
+  <h2>2. 動作の概要</h2>
+  <p>本拡張機能は以下の処理のみを行います。</p>
+  <ul>
+    <li>右クリックメニューを通じてユーザーが選択したテーブルを検出し、ブラウザ上で描画を変換する</li>
+    <li>ソート・検索・ツリー表示などの UI 機能を提供する</li>
+    <li>変換前の HTML をページ内（<code>data-wte-snap</code> 属性）に一時保存し、リセット時に復元する</li>
+  </ul>
+  <p>これらはすべてローカル処理であり、外部サーバーへのデータ送信は行いません。</p>
+
+  <h2>3. 権限の説明</h2>
+  <ul>
+    <li><strong>contextMenus</strong>: 右クリックメニューに「リッチ表示」「ツリー表示」「リセット」の項目を追加するために使用します。</li>
+    <li><strong>&lt;all_urls&gt;</strong>: すべてのウェブサイト上のテーブルを変換できるようにするために必要です。ページの内容を読み取ることはなく、テーブルの描画変換のみを行います。</li>
+  </ul>
+
+  <h2>4. サードパーティへのデータ共有</h2>
+  <p>本拡張機能はいかなるサードパーティにもデータを共有しません。外部との通信は一切行いません。</p>
+
+  <h2>5. データの保存</h2>
+  <p>本拡張機能はローカルストレージ・Cookie・IndexedDB などを使用しません。ページを離れると変換状態は自動的に消去されます。</p>
+
+  <h2>6. 子どものプライバシー</h2>
+  <p>本拡張機能は年齢に関係なく使用できますが、いかなる年齢のユーザーからも情報を収集しません。</p>
+
+  <h2>7. ポリシーの変更</h2>
+  <p>本ポリシーを変更する場合は、このページを更新します。重大な変更が生じた場合は、拡張機能のバージョンアップとともに告知します。</p>
+
+  <h2>8. お問い合わせ</h2>
+  <p>プライバシーに関するご質問は、
+    <a href="https://github.com/nakashun-mf/ex_webtable/issues" target="_blank" rel="noopener">GitHub Issues</a>
+    よりお気軽にご連絡ください。
+  </p>
+
+  <hr>
+
+  <footer>
+    <p>&copy; 2025 WebTable Enhancer –
+      <a href="https://github.com/nakashun-mf/ex_webtable">GitHub リポジトリ</a>
+    </p>
+    <p>このページは <a href="https://pages.github.com/">GitHub Pages</a> でホストされています。</p>
+  </footer>
+
+</div>
+</body>
+</html>
