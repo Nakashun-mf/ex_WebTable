@@ -5,7 +5,7 @@ import { hideColFilterPanel } from './filters.js';
 import { hideColVisibilityPanel } from './colvis.js';
 
 export function resetTable(table) {
-  if (table.dataset.wteSnap === undefined) {
+  if (table._wteSnapNode === undefined) {
     notify('このテーブルはまだ変換されていません。');
     return;
   }
@@ -17,15 +17,18 @@ export function resetTable(table) {
     wrap.remove();
   }
 
-  // Restore original inner HTML and attributes
-  table.innerHTML = table.dataset.wteSnap;
-  const origStyle = table.dataset.wteStyle;
+  // Restore original children from the cloned DOM node — no innerHTML parsing.
+  while (table.firstChild) table.removeChild(table.firstChild);
+  const snapClone = table._wteSnapNode.cloneNode(true);
+  while (snapClone.firstChild) table.appendChild(snapClone.firstChild);
+
+  // Restore original style attribute from the snapshot clone.
+  const origStyle = table._wteSnapNode.getAttribute('style');
   if (origStyle) table.setAttribute('style', origStyle);
   else table.removeAttribute('style');
 
   table.classList.remove('wte-rich', 'wte-tree');
-  delete table.dataset.wteSnap;
-  delete table.dataset.wteStyle;
+  delete table._wteSnapNode;
   delete table._wteOriginalOrder;
   delete table._wteApplyStripes;
   delete table._wteInteractionSetup;

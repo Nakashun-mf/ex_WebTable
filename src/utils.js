@@ -64,8 +64,10 @@ export function isTransformed(table) {
 }
 
 export function saveSnapshot(table) {
-  if (table.dataset.wteSnap === undefined) {
-    table.dataset.wteSnap  = table.innerHTML;
-    table.dataset.wteStyle = table.getAttribute('style') ?? '';
+  if (table._wteSnapNode === undefined) {
+    // Store a deep clone of the table as a DOM node instead of an innerHTML
+    // string. This avoids parsing untrusted HTML on restore and keeps large
+    // HTML out of data-* attributes.
+    table._wteSnapNode = table.cloneNode(true);
   }
 }

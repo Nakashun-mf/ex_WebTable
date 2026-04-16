@@ -39,9 +39,8 @@
     return table.classList.contains("wte-rich") || table.classList.contains("wte-tree");
   }
   function saveSnapshot(table) {
-    if (table.dataset.wteSnap === void 0) {
-      table.dataset.wteSnap = table.innerHTML;
-      table.dataset.wteStyle = table.getAttribute("style") ?? "";
+    if (table._wteSnapNode === void 0) {
+      table._wteSnapNode = table.cloneNode(true);
     }
   }
 
@@ -812,7 +811,7 @@
 
   // src/reset.js
   function resetTable(table) {
-    if (table.dataset.wteSnap === void 0) {
+    if (table._wteSnapNode === void 0) {
       notify("\u3053\u306E\u30C6\u30FC\u30D6\u30EB\u306F\u307E\u3060\u5909\u63DB\u3055\u308C\u3066\u3044\u307E\u305B\u3093\u3002");
       return;
     }
@@ -821,13 +820,14 @@
       wrap.before(table);
       wrap.remove();
     }
-    table.innerHTML = table.dataset.wteSnap;
-    const origStyle = table.dataset.wteStyle;
+    while (table.firstChild) table.removeChild(table.firstChild);
+    const snapClone = table._wteSnapNode.cloneNode(true);
+    while (snapClone.firstChild) table.appendChild(snapClone.firstChild);
+    const origStyle = table._wteSnapNode.getAttribute("style");
     if (origStyle) table.setAttribute("style", origStyle);
     else table.removeAttribute("style");
     table.classList.remove("wte-rich", "wte-tree");
-    delete table.dataset.wteSnap;
-    delete table.dataset.wteStyle;
+    delete table._wteSnapNode;
     delete table._wteOriginalOrder;
     delete table._wteApplyStripes;
     delete table._wteInteractionSetup;
