@@ -1,0 +1,15 @@
+{
+  "name": "webtable-enhancer",
+  "version": "1.0.0",
+  "description": "Chrome extension to transform HTML tables with rich sorting/filtering and tree view",
+  "private": true,
+  "scripts": {
+    "build": "esbuild src/index.js --bundle --outfile=content.js --format=iife",
+    "watch": "esbuild src/index.js --bundle --outfile=content.js --format=iife --watch",
+    "lint": "eslint src/"
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.0",
+    "eslint": "^9.0.0"
+  }
+}
