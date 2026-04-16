@@ -462,6 +462,9 @@
     }
     saveSnapshot(table);
     ensureStructure(table);
+    getHeaderCells(table).forEach((cell, i) => {
+      cell.dataset.col = i;
+    });
     const headCells = getHeaderCells(table);
     const lvIdx = headCells.findIndex((c) => LEVEL_RE.test(c.textContent.trim()));
     const rows = getBodyRows(table);
