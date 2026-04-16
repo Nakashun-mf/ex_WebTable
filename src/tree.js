@@ -39,6 +39,11 @@ export function transformToTree(table) {
   saveSnapshot(table);
   ensureStructure(table);
 
+  // Initialize dataset.col on each header cell so that addColReorderHandles
+  // can read the column index from dragstart/drop events (rich.js does this
+  // in its own setup loop; tree mode needs it too).
+  getHeaderCells(table).forEach((cell, i) => { cell.dataset.col = i; });
+
   const headCells = getHeaderCells(table);
   const lvIdx     = headCells.findIndex(c => LEVEL_RE.test(c.textContent.trim()));
   const rows      = getBodyRows(table);
