@@ -420,26 +420,21 @@ function showColFilterPanel(table, colIdx, th) {
   setTimeout(() => document.addEventListener('click', onOutsideClick, { capture: true }), 0);
 }
 
-/* ─── Column filter index remapping after reorder ──────────────────────── */
+/* ─── Column index remapping helpers ────────────────────────────────────── */
 
-/**
- * When a column is moved from fromIdx to toIdx, update the keys in
- * _wteColFilters so they match the new column positions.
- */
+/** Maps a single column index through a move of fromIdx → toIdx. */
+function shiftIndex(idx, fromIdx, toIdx) {
+  if (idx === fromIdx) return toIdx;
+  if (fromIdx < toIdx && idx > fromIdx && idx <= toIdx) return idx - 1;
+  if (fromIdx > toIdx && idx >= toIdx && idx < fromIdx) return idx + 1;
+  return idx;
+}
+
 function remapColFilters(table, fromIdx, toIdx) {
   if (!table._wteColFilters || Object.keys(table._wteColFilters).length === 0) return;
   const newFilters = {};
   for (const [idxStr, filter] of Object.entries(table._wteColFilters)) {
-    const idx = parseInt(idxStr);
-    let newIdx = idx;
-    if (idx === fromIdx) {
-      newIdx = toIdx;
-    } else if (fromIdx < toIdx && idx > fromIdx && idx <= toIdx) {
-      newIdx = idx - 1;
-    } else if (fromIdx > toIdx && idx >= toIdx && idx < fromIdx) {
-      newIdx = idx + 1;
-    }
-    newFilters[newIdx] = filter;
+    newFilters[shiftIndex(parseInt(idxStr), fromIdx, toIdx)] = filter;
   }
   table._wteColFilters = newFilters;
 }
@@ -505,24 +500,10 @@ function showColumn(table, colIdx) {
   applyColVisibility(table);
 }
 
-/**
- * When a column is moved from fromIdx to toIdx, update the keys in
- * _wteHiddenCols so they match the new column positions.
- */
 function remapHiddenCols(table, fromIdx, toIdx) {
   if (!table._wteHiddenCols || table._wteHiddenCols.size === 0) return;
   const newHidden = new Set();
-  for (const idx of table._wteHiddenCols) {
-    let newIdx = idx;
-    if (idx === fromIdx) {
-      newIdx = toIdx;
-    } else if (fromIdx < toIdx && idx > fromIdx && idx <= toIdx) {
-      newIdx = idx - 1;
-    } else if (fromIdx > toIdx && idx >= toIdx && idx < fromIdx) {
-      newIdx = idx + 1;
-    }
-    newHidden.add(newIdx);
-  }
+  for (const idx of table._wteHiddenCols) newHidden.add(shiftIndex(idx, fromIdx, toIdx));
   table._wteHiddenCols = newHidden;
 }
 
@@ -574,13 +555,6 @@ function showColVisibilityPanel(table, clientX, clientY) {
       if (cb.checked) {
         showColumn(table, i);
       } else {
-        const hiddenCount = table._wteHiddenCols?.size ?? 0;
-        const totalCols   = getHeaderCells(table).length;
-        if (hiddenCount >= totalCols - 1) {
-          notify('最低1列は表示が必要です。');
-          cb.checked = true;
-          return;
-        }
         hideColumn(table, i);
       }
       updateDisabledStates();
@@ -590,6 +564,7 @@ function showColVisibilityPanel(table, clientX, clientY) {
     list.appendChild(label);
   });
 
+  updateDisabledStates(); // Set correct initial disabled state before rendering
   panel.appendChild(list);
   document.body.appendChild(panel);
 
@@ -620,12 +595,18 @@ function showColVisibilityPanel(table, clientX, clientY) {
   setTimeout(() => document.addEventListener('click', onOutsideClick, { capture: true }), 0);
 }
 
+/** Returns an array of column indices that are currently visible. */
+function getVisibleColIndices(table) {
+  const hidden  = table._wteHiddenCols || new Set();
+  const headers = getHeaderCells(table);
+  return Array.from({ length: headers.length }, (_, i) => i).filter(i => !hidden.has(i));
+}
+
 /* ─── CSV Export ────────────────────────────────────────────────────────── */
 
 function exportTableAsCSV(table) {
-  const hidden     = table._wteHiddenCols || new Set();
   const headers    = getHeaderCells(table);
-  const visColIdxs = Array.from({ length: headers.length }, (_, i) => i).filter(i => !hidden.has(i));
+  const visColIdxs = getVisibleColIndices(table);
 
   if (!visColIdxs.length) { notify('表示中の列がありません。'); return; }
 
@@ -645,12 +626,10 @@ function exportTableAsCSV(table) {
   const lines = [];
   lines.push(visColIdxs.map(i => escCSV(cleanCell(headers[i]))).join(','));
 
+  const emptyCell   = document.createElement('td');
   const visibleRows = getBodyRows(table).filter(r => !r.hidden);
   visibleRows.forEach(row => {
-    lines.push(visColIdxs.map(i => {
-      const cell = row.cells[i] ?? document.createElement('td');
-      return escCSV(cleanCell(cell));
-    }).join(','));
+    lines.push(visColIdxs.map(i => escCSV(cleanCell(row.cells[i] ?? emptyCell))).join(','));
   });
 
   const csv  = '\ufeff' + lines.join('\r\n');
@@ -827,14 +806,7 @@ function reorderColumn(table, fromIdx, toIdx) {
 
   // Remap Level column index (tree view)
   if (table._wteLvColIdx !== undefined) {
-    const lv = table._wteLvColIdx;
-    if (lv === fromIdx) {
-      table._wteLvColIdx = toIdx;
-    } else if (fromIdx < toIdx && lv > fromIdx && lv <= toIdx) {
-      table._wteLvColIdx = lv - 1;
-    } else if (fromIdx > toIdx && lv >= toIdx && lv < fromIdx) {
-      table._wteLvColIdx = lv + 1;
-    }
+    table._wteLvColIdx = shiftIndex(table._wteLvColIdx, fromIdx, toIdx);
   }
 }
 
@@ -1335,13 +1307,14 @@ function copyRowsAsTSV(rows, includeHeader, table) {
   const esc  = s => s.replace(/[\t\n]/g, ' ');
   const text = cell => {
     const c = cell.cloneNode(true);
-    c.querySelectorAll('.wte-arrow, .wte-btn, .wte-spc, .wte-th-controls').forEach(n => n.remove());
+    c.querySelectorAll('.wte-arrow, .wte-btn, .wte-spc, .wte-th-controls, .wte-col-resizer, .wte-filter-btn').forEach(n => n.remove());
     return esc(c.textContent.trim());
   };
 
+  const emptyCell = document.createElement('td');
   const lines = [];
   if (includeHeader) lines.push(visColIdxs.map(i => text(headers[i])).join('\t'));
-  visibleRows.forEach(r => lines.push(visColIdxs.map(i => text(r.cells[i] ?? document.createElement('td'))).join('\t')));
+  visibleRows.forEach(r => lines.push(visColIdxs.map(i => text(r.cells[i] ?? emptyCell)).join('\t')));
 
   const tsvText = lines.join('\n');
   const count   = visibleRows.length;
