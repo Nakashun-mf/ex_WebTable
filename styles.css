@@ -419,6 +419,7 @@
 .wte-filter-list {
   max-height: 200px !important;
   overflow-y: auto !important;
+  overscroll-behavior: contain !important;
   padding: 4px 0 !important;
 }
 
@@ -512,6 +513,7 @@
 .wte-col-vis-list {
   max-height: 240px !important;
   overflow-y: auto !important;
+  overscroll-behavior: contain !important;
   padding: 4px 0 !important;
 }
 
