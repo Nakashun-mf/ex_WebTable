@@ -1,6 +1,7 @@
 // Column visibility — show/hide columns and the visibility management panel.
 
 import { getHeaderCells, getBodyRows, getCachedBodyRows, notify } from './utils.js';
+import { saveSession } from './session.js';
 import { shiftIndex } from './remap.js';
 
 /** Returns the column index of a header cell (data-col if available, else DOM position). */
@@ -54,12 +55,14 @@ export function hideColumn(table, colIdx) {
   }
   table._wteHiddenCols.add(colIdx);
   applyColVisibility(table);
+  saveSession(table);
 }
 
 export function showColumn(table, colIdx) {
   if (!table._wteHiddenCols) return;
   table._wteHiddenCols.delete(colIdx);
   applyColVisibility(table);
+  saveSession(table);
 }
 
 export function remapHiddenCols(table, fromIdx, toIdx) {

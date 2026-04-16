@@ -1,4 +1,14 @@
 (() => {
+  var __defProp = Object.defineProperty;
+  var __getOwnPropNames = Object.getOwnPropertyNames;
+  var __esm = (fn, res) => function __init() {
+    return fn && (res = (0, fn[__getOwnPropNames(fn)[0]])(fn = 0)), res;
+  };
+  var __export = (target, all) => {
+    for (var name in all)
+      __defProp(target, name, { get: all[name], enumerable: true });
+  };
+
   // src/utils.js
   function findTable(el) {
     if (!el) return null;
@@ -46,203 +56,10 @@
       table._wteSnapNode = table.cloneNode(true);
     }
   }
-
-  // src/sort.js
-  function sortBy(table, col) {
-    const headers = getHeaderCells(table);
-    const th = headers[col];
-    if (!th) return;
-    const current = th.dataset.dir;
-    const next = current === "" ? "asc" : current === "asc" ? "desc" : "";
-    headers.forEach((h) => {
-      h.dataset.dir = "";
-      const a = h.querySelector(".wte-arrow");
-      if (a) a.textContent = "\u2195";
-      h.setAttribute("aria-sort", "none");
-    });
-    th.dataset.dir = next;
-    const arrow = th.querySelector(".wte-arrow");
-    if (arrow) arrow.textContent = next === "asc" ? "\u2191" : next === "desc" ? "\u2193" : "\u2195";
-    const rows = getBodyRows(table);
-    if (next === "") {
-      const originalOrder = table._wteOriginalOrder;
-      if (originalOrder) {
-        const tbody2 = table.tBodies[0] ?? table.createTBody();
-        originalOrder.forEach((r) => tbody2.appendChild(r));
-        table._wteBodyRowsCache = [...originalOrder];
-      }
-      if (typeof table._wteApplyStripes === "function") table._wteApplyStripes();
-      return;
+  var init_utils = __esm({
+    "src/utils.js"() {
     }
-    if (!table._wteOriginalOrder) {
-      table._wteOriginalOrder = [...rows];
-    }
-    th.setAttribute("aria-sort", next === "asc" ? "ascending" : "descending");
-    rows.sort((a, b) => cmpCells(a.cells[col], b.cells[col], next === "asc"));
-    const tbody = table.tBodies[0] ?? table.createTBody();
-    rows.forEach((r) => tbody.appendChild(r));
-    table._wteBodyRowsCache = rows;
-    if (typeof table._wteApplyStripes === "function") table._wteApplyStripes();
-  }
-  function cmpCells(a, b, asc) {
-    const av = a?.textContent.trim() ?? "";
-    const bv = b?.textContent.trim() ?? "";
-    const sign = asc ? 1 : -1;
-    const an = parseNum(av), bn = parseNum(bv);
-    if (an !== null && bn !== null) return sign * (an - bn);
-    const ad = Date.parse(av), bd = Date.parse(bv);
-    if (!isNaN(ad) && !isNaN(bd)) return sign * (ad - bd);
-    return sign * av.localeCompare(bv, "ja");
-  }
-  function parseNum(s) {
-    const n = parseFloat(s.replace(/[,，¥$€£%\s]/g, ""));
-    return isNaN(n) ? null : n;
-  }
-
-  // src/filters.js
-  function applyAllFilters(table) {
-    const colFilters = table._wteColFilters || {};
-    const searchQ = (table._wteSearchQuery || "").toLowerCase();
-    const hasColFilters = Object.keys(colFilters).length > 0;
-    getCachedBodyRows(table).forEach((row) => {
-      let visible = true;
-      if (searchQ) {
-        const text = row._wteText ?? row.textContent.toLowerCase();
-        if (!text.includes(searchQ)) visible = false;
-      }
-      if (visible && hasColFilters) {
-        for (const [idxStr, filter] of Object.entries(colFilters)) {
-          const idx = parseInt(idxStr);
-          const cellText = row._wteCells ? row._wteCells[idx] ?? "" : row.cells[idx]?.textContent.trim() ?? "";
-          if (filter.checkedValues && !filter.checkedValues.has(cellText)) {
-            visible = false;
-            break;
-          }
-        }
-      }
-      row.hidden = !visible;
-    });
-    if (typeof table._wteApplyStripes === "function") table._wteApplyStripes();
-    if (typeof table._wteRefreshCount === "function") table._wteRefreshCount();
-  }
-  function hideColFilterPanel() {
-    document.getElementById("wte-col-filter-panel")?.remove();
-  }
-  function showColFilterPanel(table, colIdx, th) {
-    const existing = document.getElementById("wte-col-filter-panel");
-    if (existing) {
-      const isSame = existing._wteColIdx === colIdx && existing._wteTable === table;
-      hideColFilterPanel();
-      if (isSame) return;
-    }
-    const rows = getCachedBodyRows(table);
-    const uniqueValues = [...new Set(
-      rows.map((r) => r.cells[colIdx]?.textContent.trim() ?? "")
-    )].sort((a, b) => a.localeCompare(b, "ja"));
-    const currentFilter = (table._wteColFilters || {})[colIdx];
-    const activeValues = currentFilter?.checkedValues ? new Set(currentFilter.checkedValues) : new Set(uniqueValues);
-    const panel = document.createElement("div");
-    panel.id = "wte-col-filter-panel";
-    panel.className = "wte-col-filter-panel";
-    panel._wteTable = table;
-    panel._wteColIdx = colIdx;
-    const searchInput = document.createElement("input");
-    searchInput.type = "text";
-    searchInput.className = "wte-filter-search";
-    searchInput.placeholder = "\u5024\u3092\u691C\u7D22\u2026";
-    const selectRow = document.createElement("div");
-    selectRow.className = "wte-filter-select-row";
-    const selectAllBtn = document.createElement("button");
-    selectAllBtn.className = "wte-filter-select-all";
-    selectAllBtn.textContent = "\u5168\u9078\u629E";
-    const deselectAllBtn = document.createElement("button");
-    deselectAllBtn.className = "wte-filter-select-all";
-    deselectAllBtn.textContent = "\u5168\u89E3\u9664";
-    selectRow.append(selectAllBtn, deselectAllBtn);
-    const listEl = document.createElement("div");
-    listEl.className = "wte-filter-list";
-    const renderList = (filterText = "") => {
-      listEl.innerHTML = "";
-      const q = filterText.toLowerCase();
-      const filtered = uniqueValues.filter((v) => !q || v.toLowerCase().includes(q));
-      filtered.forEach((val) => {
-        const label = document.createElement("label");
-        label.className = "wte-filter-item";
-        const cb = document.createElement("input");
-        cb.type = "checkbox";
-        cb.value = val;
-        cb.checked = activeValues.has(val);
-        cb.addEventListener("change", () => {
-          if (cb.checked) activeValues.add(val);
-          else activeValues.delete(val);
-        });
-        label.append(cb, document.createTextNode("\xA0" + (val === "" ? "(\u7A7A)" : val)));
-        listEl.appendChild(label);
-      });
-    };
-    renderList();
-    searchInput.addEventListener("input", () => renderList(searchInput.value));
-    selectAllBtn.addEventListener("click", () => {
-      uniqueValues.forEach((v) => activeValues.add(v));
-      renderList(searchInput.value);
-    });
-    deselectAllBtn.addEventListener("click", () => {
-      activeValues.clear();
-      renderList(searchInput.value);
-    });
-    const btnRow = document.createElement("div");
-    btnRow.className = "wte-filter-btn-row";
-    const clearBtn = document.createElement("button");
-    clearBtn.className = "wte-filter-clear";
-    clearBtn.textContent = "\u30AF\u30EA\u30A2";
-    const applyBtn = document.createElement("button");
-    applyBtn.className = "wte-filter-apply";
-    applyBtn.textContent = "\u9069\u7528";
-    clearBtn.addEventListener("click", () => {
-      if (!table._wteColFilters) table._wteColFilters = {};
-      delete table._wteColFilters[colIdx];
-      th.querySelector(".wte-filter-btn")?.classList.remove("wte-filter-active");
-      applyAllFilters(table);
-      hideColFilterPanel();
-    });
-    applyBtn.addEventListener("click", () => {
-      if (!table._wteColFilters) table._wteColFilters = {};
-      if (activeValues.size >= uniqueValues.length) {
-        delete table._wteColFilters[colIdx];
-        th.querySelector(".wte-filter-btn")?.classList.remove("wte-filter-active");
-      } else {
-        table._wteColFilters[colIdx] = { checkedValues: new Set(activeValues) };
-        th.querySelector(".wte-filter-btn")?.classList.add("wte-filter-active");
-      }
-      applyAllFilters(table);
-      hideColFilterPanel();
-    });
-    btnRow.append(clearBtn, applyBtn);
-    panel.append(searchInput, selectRow, listEl, btnRow);
-    document.body.appendChild(panel);
-    const rect = th.getBoundingClientRect();
-    const vw = window.innerWidth;
-    const vh = window.innerHeight;
-    const panelW = 220;
-    let left = rect.left;
-    let top = rect.bottom + 2;
-    panel.style.left = `${left}px`;
-    panel.style.top = `${top}px`;
-    requestAnimationFrame(() => {
-      const panelH = panel.offsetHeight;
-      if (left + panelW > vw - 8) left = vw - panelW - 8;
-      if (top + panelH > vh - 8) top = rect.top - panelH - 2;
-      panel.style.left = `${Math.max(8, left)}px`;
-      panel.style.top = `${Math.max(8, top)}px`;
-    });
-    const onOutsideClick = (e) => {
-      if (!panel.contains(e.target)) {
-        hideColFilterPanel();
-        document.removeEventListener("click", onOutsideClick, { capture: true });
-      }
-    };
-    setTimeout(() => document.addEventListener("click", onOutsideClick, { capture: true }), 0);
-  }
+  });
 
   // src/resize.js
   function addColResizeHandles(table) {
@@ -302,6 +119,11 @@
       });
     });
   }
+  var init_resize = __esm({
+    "src/resize.js"() {
+      init_utils();
+    }
+  });
 
   // src/remap.js
   function shiftIndex(idx, fromIdx, toIdx) {
@@ -318,8 +140,24 @@
     }
     table._wteColFilters = newFilters;
   }
+  var init_remap = __esm({
+    "src/remap.js"() {
+    }
+  });
 
   // src/colvis.js
+  var colvis_exports = {};
+  __export(colvis_exports, {
+    applyColVisibility: () => applyColVisibility,
+    getColLabel: () => getColLabel,
+    getThColIdx: () => getThColIdx,
+    getVisibleColIndices: () => getVisibleColIndices,
+    hideColVisibilityPanel: () => hideColVisibilityPanel,
+    hideColumn: () => hideColumn,
+    remapHiddenCols: () => remapHiddenCols,
+    showColVisibilityPanel: () => showColVisibilityPanel,
+    showColumn: () => showColumn
+  });
   function getThColIdx(table, thEl) {
     if (thEl.dataset.col !== void 0) return parseInt(thEl.dataset.col);
     return getHeaderCells(table).indexOf(thEl);
@@ -362,11 +200,13 @@
     }
     table._wteHiddenCols.add(colIdx);
     applyColVisibility(table);
+    saveSession(table);
   }
   function showColumn(table, colIdx) {
     if (!table._wteHiddenCols) return;
     table._wteHiddenCols.delete(colIdx);
     applyColVisibility(table);
+    saveSession(table);
   }
   function remapHiddenCols(table, fromIdx, toIdx) {
     if (!table._wteHiddenCols || table._wteHiddenCols.size === 0) return;
@@ -449,6 +289,13 @@
     const headers = getHeaderCells(table);
     return Array.from({ length: headers.length }, (_, i) => i).filter((i) => !hidden.has(i));
   }
+  var init_colvis = __esm({
+    "src/colvis.js"() {
+      init_utils();
+      init_session();
+      init_remap();
+    }
+  });
 
   // src/reorder.js
   function addColReorderHandles(table) {
@@ -526,6 +373,13 @@
       table._wteLvColIdx = shiftIndex(table._wteLvColIdx, fromIdx, toIdx);
     }
   }
+  var init_reorder = __esm({
+    "src/reorder.js"() {
+      init_utils();
+      init_remap();
+      init_colvis();
+    }
+  });
 
   // src/interaction.js
   function setupTableInteraction(table) {
@@ -567,106 +421,25 @@
     const [from, to] = startIdx <= endIdx ? [startIdx, endIdx] : [endIdx, startIdx];
     rows.slice(from, to + 1).forEach((r) => r.classList.add("wte-selected"));
   }
-
-  // src/rich.js
-  function transformToRich(table) {
-    if (isTransformed(table)) {
-      notify("\u3059\u3067\u306B\u5909\u63DB\u6E08\u307F\u3067\u3059\u3002\u5148\u306B\u300C\u5143\u306B\u623B\u3059\u300D\u3092\u5B9F\u884C\u3057\u3066\u304F\u3060\u3055\u3044\u3002");
-      return;
+  var init_interaction = __esm({
+    "src/interaction.js"() {
+      init_utils();
     }
-    saveSnapshot(table);
-    const wrap = document.createElement("div");
-    wrap.className = "wte-wrap";
-    table.before(wrap);
-    const toolbar = document.createElement("div");
-    toolbar.className = "wte-toolbar";
-    const search = Object.assign(document.createElement("input"), {
-      type: "text",
-      className: "wte-search",
-      placeholder: "\u{1F50D}  \u30C6\u30FC\u30D6\u30EB\u3092\u691C\u7D22\u2026"
-    });
-    const counter = Object.assign(document.createElement("span"), { className: "wte-counter" });
-    toolbar.append(search, counter);
-    wrap.append(toolbar, table);
-    table.classList.add("wte-rich");
-    table._wteColFilters = {};
-    table._wteSearchQuery = "";
-    ensureStructure(table);
-    {
-      const bodyRows = getBodyRows(table);
-      table._wteBodyRowsCache = bodyRows;
-      bodyRows.forEach((row) => {
-        row._wteText = row.textContent.toLowerCase();
-        row._wteCells = Array.from(row.cells).map((c) => c.textContent.trim());
-      });
-    }
-    getHeaderCells(table).forEach((cell, i) => {
-      cell.classList.add("wte-th");
-      cell.dataset.col = i;
-      cell.dataset.dir = "";
-      cell.setAttribute("tabindex", "0");
-      cell.setAttribute("role", "columnheader");
-      cell.setAttribute("aria-sort", "none");
-      const labelEl = document.createElement("div");
-      labelEl.className = "wte-th-label";
-      while (cell.firstChild) labelEl.appendChild(cell.firstChild);
-      const controlsEl = document.createElement("div");
-      controlsEl.className = "wte-th-controls";
-      const arrow = Object.assign(document.createElement("span"), {
-        className: "wte-arrow",
-        ariaHidden: "true",
-        textContent: "\u2195"
-      });
-      const filterBtn = document.createElement("button");
-      filterBtn.className = "wte-filter-btn";
-      filterBtn.textContent = "\u25BC";
-      filterBtn.title = "\u5217\u30D5\u30A3\u30EB\u30BF\u30FC";
-      controlsEl.append(arrow, filterBtn);
-      cell.append(labelEl, controlsEl);
-      cell.addEventListener("click", () => sortBy(table, parseInt(cell.dataset.col)));
-      cell.addEventListener("keydown", (e) => {
-        if (e.key === "Enter" || e.key === " ") {
-          e.preventDefault();
-          sortBy(table, parseInt(cell.dataset.col));
-        }
-      });
-      filterBtn.addEventListener("click", (e) => {
-        e.stopPropagation();
-        showColFilterPanel(table, parseInt(cell.dataset.col), cell);
-      });
-    });
-    const applyStripes = () => {
-      let n = 0;
-      getCachedBodyRows(table).forEach((r) => {
-        if (!r.hidden) n++;
-        r.classList.toggle("wte-stripe", !r.hidden && n % 2 === 0);
-      });
-    };
-    table._wteApplyStripes = applyStripes;
-    const refreshCount = () => {
-      const rows = getCachedBodyRows(table);
-      const vis = rows.filter((r) => !r.hidden).length;
-      counter.textContent = vis === rows.length ? `${rows.length} \u4EF6` : `${vis} / ${rows.length} \u4EF6`;
-    };
-    table._wteRefreshCount = refreshCount;
-    let _searchTimer;
-    search.addEventListener("input", () => {
-      clearTimeout(_searchTimer);
-      _searchTimer = setTimeout(() => {
-        table._wteSearchQuery = search.value;
-        applyAllFilters(table);
-      }, 150);
-    });
-    refreshCount();
-    applyStripes();
-    setupTableInteraction(table);
-    addColResizeHandles(table);
-    addColReorderHandles(table);
-    notify("\u30EA\u30C3\u30C1\u8868\u793A\u306B\u5909\u63DB\u3057\u307E\u3057\u305F \u2713");
-  }
+  });
 
   // src/tree.js
-  var LEVEL_RE = /^(level|lvl|lv\.?|tier|rank|indent|node|step|depth|レベル|階層|深さ|深度|段階|ノード)$/i;
+  var tree_exports = {};
+  __export(tree_exports, {
+    LEVEL_RE: () => LEVEL_RE,
+    applyVisibility: () => applyVisibility,
+    collapseAll: () => collapseAll,
+    expandAll: () => expandAll,
+    expandToLevel: () => expandToLevel,
+    stripIndentPrefix: () => stripIndentPrefix,
+    toggleNode: () => toggleNode,
+    transformToTree: () => transformToTree,
+    underscoreLevel: () => underscoreLevel
+  });
   function underscoreLevel(text) {
     const m = text.match(/^[_\u3000\u00a0 ]*/);
     return (m ? m[0].length : 0) + 1;
@@ -826,8 +599,444 @@
       applyVisibility(c.children, show && c.open);
     });
   }
+  var LEVEL_RE;
+  var init_tree = __esm({
+    "src/tree.js"() {
+      init_utils();
+      init_resize();
+      init_reorder();
+      init_interaction();
+      LEVEL_RE = /^(level|lvl|lv\.?|tier|rank|indent|node|step|depth|レベル|階層|深さ|深度|段階|ノード)$/i;
+    }
+  });
+
+  // src/filters.js
+  var filters_exports = {};
+  __export(filters_exports, {
+    applyAllFilters: () => applyAllFilters,
+    hideColFilterPanel: () => hideColFilterPanel,
+    showColFilterPanel: () => showColFilterPanel
+  });
+  function applyAllFilters(table) {
+    const colFilters = table._wteColFilters || {};
+    const searchQ = (table._wteSearchQuery || "").toLowerCase();
+    const hasColFilters = Object.keys(colFilters).length > 0;
+    getCachedBodyRows(table).forEach((row) => {
+      let visible = true;
+      if (searchQ) {
+        const text = row._wteText ?? row.textContent.toLowerCase();
+        if (!text.includes(searchQ)) visible = false;
+      }
+      if (visible && hasColFilters) {
+        for (const [idxStr, filter] of Object.entries(colFilters)) {
+          const idx = parseInt(idxStr);
+          const cellText = row._wteCells ? row._wteCells[idx] ?? "" : row.cells[idx]?.textContent.trim() ?? "";
+          if (filter.checkedValues && !filter.checkedValues.has(cellText)) {
+            visible = false;
+            break;
+          }
+        }
+      }
+      row.hidden = !visible;
+    });
+    if (typeof table._wteApplyStripes === "function") table._wteApplyStripes();
+    if (typeof table._wteRefreshCount === "function") table._wteRefreshCount();
+    saveSession(table);
+  }
+  function hideColFilterPanel() {
+    document.getElementById("wte-col-filter-panel")?.remove();
+  }
+  function showColFilterPanel(table, colIdx, th) {
+    const existing = document.getElementById("wte-col-filter-panel");
+    if (existing) {
+      const isSame = existing._wteColIdx === colIdx && existing._wteTable === table;
+      hideColFilterPanel();
+      if (isSame) return;
+    }
+    const rows = getCachedBodyRows(table);
+    const uniqueValues = [...new Set(
+      rows.map((r) => r.cells[colIdx]?.textContent.trim() ?? "")
+    )].sort((a, b) => a.localeCompare(b, "ja"));
+    const currentFilter = (table._wteColFilters || {})[colIdx];
+    const activeValues = currentFilter?.checkedValues ? new Set(currentFilter.checkedValues) : new Set(uniqueValues);
+    const panel = document.createElement("div");
+    panel.id = "wte-col-filter-panel";
+    panel.className = "wte-col-filter-panel";
+    panel._wteTable = table;
+    panel._wteColIdx = colIdx;
+    const searchInput = document.createElement("input");
+    searchInput.type = "text";
+    searchInput.className = "wte-filter-search";
+    searchInput.placeholder = "\u5024\u3092\u691C\u7D22\u2026";
+    const selectRow = document.createElement("div");
+    selectRow.className = "wte-filter-select-row";
+    const selectAllBtn = document.createElement("button");
+    selectAllBtn.className = "wte-filter-select-all";
+    selectAllBtn.textContent = "\u5168\u9078\u629E";
+    const deselectAllBtn = document.createElement("button");
+    deselectAllBtn.className = "wte-filter-select-all";
+    deselectAllBtn.textContent = "\u5168\u89E3\u9664";
+    selectRow.append(selectAllBtn, deselectAllBtn);
+    const listEl = document.createElement("div");
+    listEl.className = "wte-filter-list";
+    const renderList = (filterText = "") => {
+      listEl.innerHTML = "";
+      const q = filterText.toLowerCase();
+      const filtered = uniqueValues.filter((v) => !q || v.toLowerCase().includes(q));
+      filtered.forEach((val) => {
+        const label = document.createElement("label");
+        label.className = "wte-filter-item";
+        const cb = document.createElement("input");
+        cb.type = "checkbox";
+        cb.value = val;
+        cb.checked = activeValues.has(val);
+        cb.addEventListener("change", () => {
+          if (cb.checked) activeValues.add(val);
+          else activeValues.delete(val);
+        });
+        label.append(cb, document.createTextNode("\xA0" + (val === "" ? "(\u7A7A)" : val)));
+        listEl.appendChild(label);
+      });
+    };
+    renderList();
+    searchInput.addEventListener("input", () => renderList(searchInput.value));
+    selectAllBtn.addEventListener("click", () => {
+      uniqueValues.forEach((v) => activeValues.add(v));
+      renderList(searchInput.value);
+    });
+    deselectAllBtn.addEventListener("click", () => {
+      activeValues.clear();
+      renderList(searchInput.value);
+    });
+    const btnRow = document.createElement("div");
+    btnRow.className = "wte-filter-btn-row";
+    const clearBtn = document.createElement("button");
+    clearBtn.className = "wte-filter-clear";
+    clearBtn.textContent = "\u30AF\u30EA\u30A2";
+    const applyBtn = document.createElement("button");
+    applyBtn.className = "wte-filter-apply";
+    applyBtn.textContent = "\u9069\u7528";
+    clearBtn.addEventListener("click", () => {
+      if (!table._wteColFilters) table._wteColFilters = {};
+      delete table._wteColFilters[colIdx];
+      th.querySelector(".wte-filter-btn")?.classList.remove("wte-filter-active");
+      applyAllFilters(table);
+      hideColFilterPanel();
+    });
+    applyBtn.addEventListener("click", () => {
+      if (!table._wteColFilters) table._wteColFilters = {};
+      if (activeValues.size >= uniqueValues.length) {
+        delete table._wteColFilters[colIdx];
+        th.querySelector(".wte-filter-btn")?.classList.remove("wte-filter-active");
+      } else {
+        table._wteColFilters[colIdx] = { checkedValues: new Set(activeValues) };
+        th.querySelector(".wte-filter-btn")?.classList.add("wte-filter-active");
+      }
+      applyAllFilters(table);
+      hideColFilterPanel();
+    });
+    btnRow.append(clearBtn, applyBtn);
+    panel.append(searchInput, selectRow, listEl, btnRow);
+    document.body.appendChild(panel);
+    const rect = th.getBoundingClientRect();
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    const panelW = 220;
+    let left = rect.left;
+    let top = rect.bottom + 2;
+    panel.style.left = `${left}px`;
+    panel.style.top = `${top}px`;
+    requestAnimationFrame(() => {
+      const panelH = panel.offsetHeight;
+      if (left + panelW > vw - 8) left = vw - panelW - 8;
+      if (top + panelH > vh - 8) top = rect.top - panelH - 2;
+      panel.style.left = `${Math.max(8, left)}px`;
+      panel.style.top = `${Math.max(8, top)}px`;
+    });
+    const onOutsideClick = (e) => {
+      if (!panel.contains(e.target)) {
+        hideColFilterPanel();
+        document.removeEventListener("click", onOutsideClick, { capture: true });
+      }
+    };
+    setTimeout(() => document.addEventListener("click", onOutsideClick, { capture: true }), 0);
+  }
+  var init_filters = __esm({
+    "src/filters.js"() {
+      init_utils();
+      init_session();
+    }
+  });
+
+  // src/session.js
+  function tableKey(table) {
+    const idx = Array.from(document.querySelectorAll("table")).indexOf(table);
+    return `wte:${location.href}:${idx}`;
+  }
+  function saveSession(table) {
+    const mode = table.classList.contains("wte-rich") ? "rich" : table.classList.contains("wte-tree") ? "tree" : null;
+    if (!mode) return;
+    const colFilters = {};
+    for (const [idx, filter] of Object.entries(table._wteColFilters || {})) {
+      if (filter.checkedValues) colFilters[idx] = [...filter.checkedValues];
+    }
+    const state = {
+      mode,
+      searchQuery: table._wteSearchQuery || "",
+      colFilters,
+      hiddenCols: [...table._wteHiddenCols || []],
+      colCount: Array.from(table.tHead?.rows[0]?.cells || []).length
+    };
+    try {
+      sessionStorage.setItem(tableKey(table), JSON.stringify(state));
+    } catch {
+    }
+  }
+  function clearSession(table) {
+    try {
+      sessionStorage.removeItem(tableKey(table));
+    } catch {
+    }
+  }
+  async function restoreAllSessions() {
+    const prefix = `wte:${location.href}:`;
+    const keys = [];
+    for (let i = 0; i < sessionStorage.length; i++) {
+      const k = sessionStorage.key(i);
+      if (k?.startsWith(prefix)) keys.push(k);
+    }
+    if (!keys.length) return;
+    const { transformToRich: transformToRich2 } = await Promise.resolve().then(() => (init_rich(), rich_exports));
+    const { transformToTree: transformToTree2 } = await Promise.resolve().then(() => (init_tree(), tree_exports));
+    const { applyAllFilters: applyAllFilters2 } = await Promise.resolve().then(() => (init_filters(), filters_exports));
+    const { applyColVisibility: applyColVisibility2 } = await Promise.resolve().then(() => (init_colvis(), colvis_exports));
+    const tables = Array.from(document.querySelectorAll("table"));
+    for (const key of keys) {
+      const idx = parseInt(key.slice(prefix.length));
+      if (isNaN(idx)) continue;
+      const table = tables[idx];
+      if (!table || isTransformed(table)) continue;
+      let state;
+      try {
+        state = JSON.parse(sessionStorage.getItem(key));
+      } catch {
+        continue;
+      }
+      if (!state?.mode) continue;
+      if (state.mode === "rich") transformToRich2(table);
+      else transformToTree2(table);
+      const currentColCount = Array.from(table.tHead?.rows[0]?.cells || []).length;
+      if (currentColCount !== state.colCount) continue;
+      if (state.searchQuery) {
+        table._wteSearchQuery = state.searchQuery;
+        const searchInput = table.closest(".wte-wrap")?.querySelector(".wte-search");
+        if (searchInput) searchInput.value = state.searchQuery;
+      }
+      if (state.colFilters && Object.keys(state.colFilters).length) {
+        table._wteColFilters = {};
+        for (const [idx2, vals] of Object.entries(state.colFilters)) {
+          table._wteColFilters[idx2] = { checkedValues: new Set(vals) };
+        }
+        Object.keys(state.colFilters).forEach((i) => {
+          const th = Array.from(table.tHead?.rows[0]?.cells || [])[parseInt(i)];
+          th?.querySelector(".wte-filter-btn")?.classList.add("wte-filter-active");
+        });
+      }
+      if (state.hiddenCols?.length) {
+        table._wteHiddenCols = new Set(state.hiddenCols);
+        applyColVisibility2(table);
+      }
+      if (state.searchQuery || Object.keys(state.colFilters || {}).length) {
+        applyAllFilters2(table);
+      }
+    }
+  }
+  var init_session = __esm({
+    "src/session.js"() {
+      init_utils();
+    }
+  });
+
+  // src/sort.js
+  function sortBy(table, col) {
+    const headers = getHeaderCells(table);
+    const th = headers[col];
+    if (!th) return;
+    const current = th.dataset.dir;
+    const next = current === "" ? "asc" : current === "asc" ? "desc" : "";
+    headers.forEach((h) => {
+      h.dataset.dir = "";
+      const a = h.querySelector(".wte-arrow");
+      if (a) a.textContent = "\u2195";
+      h.setAttribute("aria-sort", "none");
+    });
+    th.dataset.dir = next;
+    const arrow = th.querySelector(".wte-arrow");
+    if (arrow) arrow.textContent = next === "asc" ? "\u2191" : next === "desc" ? "\u2193" : "\u2195";
+    const rows = getBodyRows(table);
+    if (next === "") {
+      const originalOrder = table._wteOriginalOrder;
+      if (originalOrder) {
+        const tbody2 = table.tBodies[0] ?? table.createTBody();
+        originalOrder.forEach((r) => tbody2.appendChild(r));
+        table._wteBodyRowsCache = [...originalOrder];
+      }
+      if (typeof table._wteApplyStripes === "function") table._wteApplyStripes();
+      return;
+    }
+    if (!table._wteOriginalOrder) {
+      table._wteOriginalOrder = [...rows];
+    }
+    th.setAttribute("aria-sort", next === "asc" ? "ascending" : "descending");
+    rows.sort((a, b) => cmpCells(a.cells[col], b.cells[col], next === "asc"));
+    const tbody = table.tBodies[0] ?? table.createTBody();
+    rows.forEach((r) => tbody.appendChild(r));
+    table._wteBodyRowsCache = rows;
+    if (typeof table._wteApplyStripes === "function") table._wteApplyStripes();
+  }
+  function cmpCells(a, b, asc) {
+    const av = a?.textContent.trim() ?? "";
+    const bv = b?.textContent.trim() ?? "";
+    const sign = asc ? 1 : -1;
+    const an = parseNum(av), bn = parseNum(bv);
+    if (an !== null && bn !== null) return sign * (an - bn);
+    const ad = Date.parse(av), bd = Date.parse(bv);
+    if (!isNaN(ad) && !isNaN(bd)) return sign * (ad - bd);
+    return sign * av.localeCompare(bv, "ja");
+  }
+  function parseNum(s) {
+    const n = parseFloat(s.replace(/[,，¥$€£%\s]/g, ""));
+    return isNaN(n) ? null : n;
+  }
+  var init_sort = __esm({
+    "src/sort.js"() {
+      init_utils();
+    }
+  });
+
+  // src/rich.js
+  var rich_exports = {};
+  __export(rich_exports, {
+    transformToRich: () => transformToRich
+  });
+  function transformToRich(table) {
+    if (isTransformed(table)) {
+      notify("\u3059\u3067\u306B\u5909\u63DB\u6E08\u307F\u3067\u3059\u3002\u5148\u306B\u300C\u5143\u306B\u623B\u3059\u300D\u3092\u5B9F\u884C\u3057\u3066\u304F\u3060\u3055\u3044\u3002");
+      return;
+    }
+    saveSnapshot(table);
+    const wrap = document.createElement("div");
+    wrap.className = "wte-wrap";
+    table.before(wrap);
+    const toolbar = document.createElement("div");
+    toolbar.className = "wte-toolbar";
+    const search = Object.assign(document.createElement("input"), {
+      type: "text",
+      className: "wte-search",
+      placeholder: "\u{1F50D}  \u30C6\u30FC\u30D6\u30EB\u3092\u691C\u7D22\u2026"
+    });
+    const counter = Object.assign(document.createElement("span"), { className: "wte-counter" });
+    toolbar.append(search, counter);
+    wrap.append(toolbar, table);
+    table.classList.add("wte-rich");
+    table._wteColFilters = {};
+    table._wteSearchQuery = "";
+    ensureStructure(table);
+    {
+      const bodyRows = getBodyRows(table);
+      table._wteBodyRowsCache = bodyRows;
+      bodyRows.forEach((row) => {
+        row._wteText = row.textContent.toLowerCase();
+        row._wteCells = Array.from(row.cells).map((c) => c.textContent.trim());
+      });
+    }
+    getHeaderCells(table).forEach((cell, i) => {
+      cell.classList.add("wte-th");
+      cell.dataset.col = i;
+      cell.dataset.dir = "";
+      cell.setAttribute("tabindex", "0");
+      cell.setAttribute("role", "columnheader");
+      cell.setAttribute("aria-sort", "none");
+      const labelEl = document.createElement("div");
+      labelEl.className = "wte-th-label";
+      while (cell.firstChild) labelEl.appendChild(cell.firstChild);
+      const controlsEl = document.createElement("div");
+      controlsEl.className = "wte-th-controls";
+      const arrow = Object.assign(document.createElement("span"), {
+        className: "wte-arrow",
+        ariaHidden: "true",
+        textContent: "\u2195"
+      });
+      const filterBtn = document.createElement("button");
+      filterBtn.className = "wte-filter-btn";
+      filterBtn.textContent = "\u25BC";
+      filterBtn.title = "\u5217\u30D5\u30A3\u30EB\u30BF\u30FC";
+      controlsEl.append(arrow, filterBtn);
+      cell.append(labelEl, controlsEl);
+      cell.addEventListener("click", () => sortBy(table, parseInt(cell.dataset.col)));
+      cell.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          sortBy(table, parseInt(cell.dataset.col));
+        }
+      });
+      filterBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        showColFilterPanel(table, parseInt(cell.dataset.col), cell);
+      });
+    });
+    const applyStripes = () => {
+      let n = 0;
+      getCachedBodyRows(table).forEach((r) => {
+        if (!r.hidden) n++;
+        r.classList.toggle("wte-stripe", !r.hidden && n % 2 === 0);
+      });
+    };
+    table._wteApplyStripes = applyStripes;
+    const refreshCount = () => {
+      const rows = getCachedBodyRows(table);
+      const vis = rows.filter((r) => !r.hidden).length;
+      counter.textContent = vis === rows.length ? `${rows.length} \u4EF6` : `${vis} / ${rows.length} \u4EF6`;
+    };
+    table._wteRefreshCount = refreshCount;
+    let _searchTimer;
+    search.addEventListener("input", () => {
+      clearTimeout(_searchTimer);
+      _searchTimer = setTimeout(() => {
+        table._wteSearchQuery = search.value;
+        applyAllFilters(table);
+      }, 150);
+    });
+    refreshCount();
+    applyStripes();
+    setupTableInteraction(table);
+    addColResizeHandles(table);
+    addColReorderHandles(table);
+    saveSession(table);
+    notify("\u30EA\u30C3\u30C1\u8868\u793A\u306B\u5909\u63DB\u3057\u307E\u3057\u305F \u2713");
+  }
+  var init_rich = __esm({
+    "src/rich.js"() {
+      init_utils();
+      init_session();
+      init_sort();
+      init_filters();
+      init_resize();
+      init_reorder();
+      init_interaction();
+    }
+  });
+
+  // src/index.js
+  init_utils();
+  init_rich();
+  init_tree();
 
   // src/reset.js
+  init_utils();
+  init_filters();
+  init_colvis();
+  init_session();
   function resetTable(table) {
     if (table._wteSnapNode === void 0) {
       notify("\u3053\u306E\u30C6\u30FC\u30D6\u30EB\u306F\u307E\u3060\u5909\u63DB\u3055\u308C\u3066\u3044\u307E\u305B\u3093\u3002");
@@ -858,12 +1067,21 @@
     delete table._wteRefreshCount;
     delete table._wteHiddenCols;
     delete table._wteLvColIdx;
+    clearSession(table);
     hideColFilterPanel();
     hideColVisibilityPanel();
     notify("\u5143\u306E\u8868\u793A\u306B\u623B\u3057\u307E\u3057\u305F \u2713");
   }
 
+  // src/menu.js
+  init_utils();
+  init_utils();
+  init_filters();
+  init_colvis();
+
   // src/csv.js
+  init_utils();
+  init_colvis();
   function exportTableAsCSV(table) {
     const headers = getHeaderCells(table);
     const visColIdxs = getVisibleColIndices(table);
@@ -907,6 +1125,9 @@
   }
 
   // src/menu.js
+  init_rich();
+  init_tree();
+  init_interaction();
   document.addEventListener("click", (e) => {
     const menu = document.getElementById("wte-ctx-menu");
     if (menu && !menu.hidden && !menu.contains(e.target)) hideMenu();
@@ -1124,6 +1345,8 @@
   }
 
   // src/index.js
+  init_session();
+  restoreAllSessions();
   var lastContextTarget = null;
   document.addEventListener("contextmenu", (e) => {
     lastContextTarget = e.target;

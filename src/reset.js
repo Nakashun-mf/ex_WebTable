@@ -3,6 +3,7 @@
 import { notify } from './utils.js';
 import { hideColFilterPanel } from './filters.js';
 import { hideColVisibilityPanel } from './colvis.js';
+import { clearSession } from './session.js';
 
 export function resetTable(table) {
   if (table._wteSnapNode === undefined) {
@@ -41,6 +42,7 @@ export function resetTable(table) {
   delete table._wteRefreshCount;
   delete table._wteHiddenCols;
   delete table._wteLvColIdx;
+  clearSession(table);
   hideColFilterPanel();
   hideColVisibilityPanel();
 
