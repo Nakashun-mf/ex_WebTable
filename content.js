@@ -139,9 +139,11 @@ function transformToRich(table) {
   wrap.append(toolbar, table);
 
   table.classList.add('wte-rich');
+  table._wteColFilters  = {};
+  table._wteSearchQuery = '';
   ensureStructure(table);
 
-  // Make header cells sortable (works for both <th> and <td> headers)
+  // Make header cells sortable with two-row layout (label + controls)
   getHeaderCells(table).forEach((cell, i) => {
     cell.classList.add('wte-th');
     cell.dataset.col = i;
@@ -149,19 +151,43 @@ function transformToRich(table) {
     cell.setAttribute('tabindex', '0');
     cell.setAttribute('role', 'columnheader');
     cell.setAttribute('aria-sort', 'none');
+
+    // Wrap existing text content in a label div
+    const labelEl = document.createElement('div');
+    labelEl.className = 'wte-th-label';
+    while (cell.firstChild) labelEl.appendChild(cell.firstChild);
+
+    // Controls row: sort arrow + filter button
+    const controlsEl = document.createElement('div');
+    controlsEl.className = 'wte-th-controls';
+
     const arrow = Object.assign(document.createElement('span'), {
       className: 'wte-arrow',
       ariaHidden: 'true',
       textContent: '↕'
     });
-    cell.appendChild(arrow);
-    // Use dataset.col (not closure i) so sort still works after column reorder
+
+    const filterBtn = document.createElement('button');
+    filterBtn.className = 'wte-filter-btn';
+    filterBtn.textContent = '▼';
+    filterBtn.title = '列フィルター';
+
+    controlsEl.append(arrow, filterBtn);
+    cell.append(labelEl, controlsEl);
+
+    // Sort on cell click (filter button stops propagation so sort won't fire)
     cell.addEventListener('click', () => sortBy(table, parseInt(cell.dataset.col)));
     cell.addEventListener('keydown', e => {
       if (e.key === 'Enter' || e.key === ' ') {
         e.preventDefault();
         sortBy(table, parseInt(cell.dataset.col));
       }
+    });
+
+    // Filter button opens column filter panel
+    filterBtn.addEventListener('click', e => {
+      e.stopPropagation();
+      showColFilterPanel(table, parseInt(cell.dataset.col), cell);
     });
   });
 
@@ -182,14 +208,11 @@ function transformToRich(table) {
       ? `${rows.length} 件`
       : `${vis} / ${rows.length} 件`;
   };
+  table._wteRefreshCount = refreshCount;
 
   search.addEventListener('input', () => {
-    const q = search.value.toLowerCase();
-    getBodyRows(table).forEach(r => {
-      r.hidden = q !== '' && !r.textContent.toLowerCase().includes(q);
-    });
-    refreshCount();
-    applyStripes();
+    table._wteSearchQuery = search.value;
+    applyAllFilters(table);
   });
 
   refreshCount();
@@ -198,6 +221,225 @@ function transformToRich(table) {
   addColResizeHandles(table);
   addColReorderHandles(table);
   notify('リッチ表示に変換しました ✓');
+}
+
+/* ─── Combined filter application ─────────────────────────────────────── */
+
+/** Apply global search + all active column filters together. */
+function applyAllFilters(table) {
+  const colFilters    = table._wteColFilters || {};
+  const searchQ       = (table._wteSearchQuery || '').toLowerCase();
+  const hasColFilters = Object.keys(colFilters).length > 0;
+
+  getBodyRows(table).forEach(row => {
+    let visible = true;
+
+    // Global text search
+    if (searchQ && !row.textContent.toLowerCase().includes(searchQ)) {
+      visible = false;
+    }
+
+    // Column-level checkbox filters
+    if (visible && hasColFilters) {
+      for (const [idxStr, filter] of Object.entries(colFilters)) {
+        const cell     = row.cells[parseInt(idxStr)];
+        const cellText = cell?.textContent.trim() ?? '';
+        if (filter.checkedValues && !filter.checkedValues.has(cellText)) {
+          visible = false;
+          break;
+        }
+      }
+    }
+
+    row.hidden = !visible;
+  });
+
+  if (typeof table._wteApplyStripes   === 'function') table._wteApplyStripes();
+  if (typeof table._wteRefreshCount   === 'function') table._wteRefreshCount();
+}
+
+/* ─── Column filter panel ──────────────────────────────────────────────── */
+
+function hideColFilterPanel() {
+  document.getElementById('wte-col-filter-panel')?.remove();
+}
+
+function showColFilterPanel(table, colIdx, th) {
+  // Toggle: clicking the same column's button again closes the panel
+  const existing = document.getElementById('wte-col-filter-panel');
+  if (existing) {
+    const isSame = existing._wteColIdx === colIdx && existing._wteTable === table;
+    hideColFilterPanel();
+    if (isSame) return;
+  }
+
+  // Collect unique values from this column across all body rows
+  const rows = getBodyRows(table);
+  const uniqueValues = [...new Set(
+    rows.map(r => r.cells[colIdx]?.textContent.trim() ?? '')
+  )].sort((a, b) => a.localeCompare(b, 'ja'));
+
+  // Current active values (default = all selected)
+  const currentFilter = (table._wteColFilters || {})[colIdx];
+  const activeValues  = currentFilter?.checkedValues
+    ? new Set(currentFilter.checkedValues)
+    : new Set(uniqueValues);
+
+  // ── Build panel ────────────────────────────────────────────────────────
+  const panel = document.createElement('div');
+  panel.id         = 'wte-col-filter-panel';
+  panel.className  = 'wte-col-filter-panel';
+  panel._wteTable  = table;
+  panel._wteColIdx = colIdx;
+
+  // Search input — filters the checkbox list (not table rows directly)
+  const searchInput = document.createElement('input');
+  searchInput.type        = 'text';
+  searchInput.className   = 'wte-filter-search';
+  searchInput.placeholder = '値を検索…';
+
+  // Select-all / deselect-all row
+  const selectRow     = document.createElement('div');
+  selectRow.className = 'wte-filter-select-row';
+
+  const selectAllBtn    = document.createElement('button');
+  selectAllBtn.className = 'wte-filter-select-all';
+  selectAllBtn.textContent = '全選択';
+
+  const deselectAllBtn     = document.createElement('button');
+  deselectAllBtn.className = 'wte-filter-select-all';
+  deselectAllBtn.textContent = '全解除';
+
+  selectRow.append(selectAllBtn, deselectAllBtn);
+
+  // Scrollable checkbox list
+  const listEl     = document.createElement('div');
+  listEl.className = 'wte-filter-list';
+
+  const renderList = (filterText = '') => {
+    listEl.innerHTML = '';
+    const q        = filterText.toLowerCase();
+    const filtered = uniqueValues.filter(v => !q || v.toLowerCase().includes(q));
+    filtered.forEach(val => {
+      const label     = document.createElement('label');
+      label.className = 'wte-filter-item';
+
+      const cb   = document.createElement('input');
+      cb.type    = 'checkbox';
+      cb.value   = val;
+      cb.checked = activeValues.has(val);
+      cb.addEventListener('change', () => {
+        if (cb.checked) activeValues.add(val);
+        else            activeValues.delete(val);
+      });
+
+      label.append(cb, document.createTextNode('\u00a0' + (val === '' ? '(空)' : val)));
+      listEl.appendChild(label);
+    });
+  };
+
+  renderList();
+  searchInput.addEventListener('input', () => renderList(searchInput.value));
+
+  selectAllBtn.addEventListener('click', () => {
+    uniqueValues.forEach(v => activeValues.add(v));
+    renderList(searchInput.value);
+  });
+  deselectAllBtn.addEventListener('click', () => {
+    activeValues.clear();
+    renderList(searchInput.value);
+  });
+
+  // Button row: Clear + Apply
+  const btnRow     = document.createElement('div');
+  btnRow.className = 'wte-filter-btn-row';
+
+  const clearBtn     = document.createElement('button');
+  clearBtn.className = 'wte-filter-clear';
+  clearBtn.textContent = 'クリア';
+
+  const applyBtn     = document.createElement('button');
+  applyBtn.className = 'wte-filter-apply';
+  applyBtn.textContent = '適用';
+
+  clearBtn.addEventListener('click', () => {
+    if (!table._wteColFilters) table._wteColFilters = {};
+    delete table._wteColFilters[colIdx];
+    th.querySelector('.wte-filter-btn')?.classList.remove('wte-filter-active');
+    applyAllFilters(table);
+    hideColFilterPanel();
+  });
+
+  applyBtn.addEventListener('click', () => {
+    if (!table._wteColFilters) table._wteColFilters = {};
+    if (activeValues.size >= uniqueValues.length) {
+      // All values selected = effectively no filter
+      delete table._wteColFilters[colIdx];
+      th.querySelector('.wte-filter-btn')?.classList.remove('wte-filter-active');
+    } else {
+      table._wteColFilters[colIdx] = { checkedValues: new Set(activeValues) };
+      th.querySelector('.wte-filter-btn')?.classList.add('wte-filter-active');
+    }
+    applyAllFilters(table);
+    hideColFilterPanel();
+  });
+
+  btnRow.append(clearBtn, applyBtn);
+  panel.append(searchInput, selectRow, listEl, btnRow);
+  document.body.appendChild(panel);
+
+  // ── Position (fixed, viewport coords) ─────────────────────────────────
+  const rect   = th.getBoundingClientRect();
+  const vw     = window.innerWidth;
+  const vh     = window.innerHeight;
+  const panelW = 220;
+
+  let left = rect.left;
+  let top  = rect.bottom + 2;
+  panel.style.left = `${left}px`;
+  panel.style.top  = `${top}px`;
+
+  // Adjust after layout is known
+  requestAnimationFrame(() => {
+    const panelH = panel.offsetHeight;
+    if (left + panelW > vw - 8) left = vw - panelW - 8;
+    if (top  + panelH > vh - 8) top  = rect.top - panelH - 2;
+    panel.style.left = `${Math.max(8, left)}px`;
+    panel.style.top  = `${Math.max(8, top)}px`;
+  });
+
+  // Close on outside click (defer by one tick so the opening click doesn't close it)
+  const onOutsideClick = e => {
+    if (!panel.contains(e.target)) {
+      hideColFilterPanel();
+      document.removeEventListener('click', onOutsideClick, { capture: true });
+    }
+  };
+  setTimeout(() => document.addEventListener('click', onOutsideClick, { capture: true }), 0);
+}
+
+/* ─── Column filter index remapping after reorder ──────────────────────── */
+
+/**
+ * When a column is moved from fromIdx to toIdx, update the keys in
+ * _wteColFilters so they match the new column positions.
+ */
+function remapColFilters(table, fromIdx, toIdx) {
+  if (!table._wteColFilters || Object.keys(table._wteColFilters).length === 0) return;
+  const newFilters = {};
+  for (const [idxStr, filter] of Object.entries(table._wteColFilters)) {
+    const idx = parseInt(idxStr);
+    let newIdx = idx;
+    if (idx === fromIdx) {
+      newIdx = toIdx;
+    } else if (fromIdx < toIdx && idx > fromIdx && idx <= toIdx) {
+      newIdx = idx - 1;
+    } else if (fromIdx > toIdx && idx >= toIdx && idx < fromIdx) {
+      newIdx = idx + 1;
+    }
+    newFilters[newIdx] = filter;
+  }
+  table._wteColFilters = newFilters;
 }
 
 /* ─── Column Resize ────────────────────────────────────────────────────── */
@@ -353,6 +595,9 @@ function reorderColumn(table, fromIdx, toIdx) {
 
   // Re-index dataset.col on all header cells
   getHeaderCells(table).forEach((th, i) => { th.dataset.col = i; });
+
+  // Remap column filter keys to match new column positions
+  remapColFilters(table, fromIdx, toIdx);
 }
 
 function sortBy(table, col) {
@@ -649,6 +894,10 @@ function resetTable(table) {
   delete table._wteLastClickedRow;
   delete table._wteCols;
   delete table._wteNodes;
+  delete table._wteColFilters;
+  delete table._wteSearchQuery;
+  delete table._wteRefreshCount;
+  hideColFilterPanel();
 
   notify('元の表示に戻しました ✓');
 }
@@ -663,11 +912,12 @@ document.addEventListener('click', e => {
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape') {
     hideMenu();
+    hideColFilterPanel();
     // 変換済みテーブルの行選択をすべて解除
     document.querySelectorAll('.wte-rich, .wte-tree').forEach(t => clearSelection(t));
   }
 });
-window.addEventListener('scroll', () => hideMenu(), { passive: true, capture: true });
+window.addEventListener('scroll', () => { hideMenu(); hideColFilterPanel(); }, { passive: true, capture: true });
 
 function getOrCreateMenu() {
   let menu = document.getElementById('wte-ctx-menu');
@@ -813,7 +1063,7 @@ function copyRowsAsTSV(rows, includeHeader, table) {
   const esc  = s => s.replace(/[\t\n]/g, ' ');
   const text = cell => {
     const c = cell.cloneNode(true);
-    c.querySelectorAll('.wte-arrow, .wte-btn, .wte-spc').forEach(n => n.remove());
+    c.querySelectorAll('.wte-arrow, .wte-btn, .wte-spc, .wte-th-controls').forEach(n => n.remove());
     return esc(c.textContent.trim());
   };
 
