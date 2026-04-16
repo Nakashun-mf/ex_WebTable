@@ -255,6 +255,23 @@ function parseNum(s) {
 // Matches common level-column header names (th OR td)
 const LEVEL_RE = /^(level|レベル|階層|lv\.?|depth|深さ)$/i;
 
+/**
+ * Returns the indent level encoded by leading underscores (or full-width
+ * spaces / ideographic spaces) in `text`.
+ * e.g.  "root"   → 1,  "_child" → 2,  "__grand" → 3
+ */
+function underscoreLevel(text) {
+  const m = text.match(/^[_\u3000\u00a0 ]*/);
+  return (m ? m[0].length : 0) + 1;
+}
+
+/** Strip leading indent characters from the first text node inside `cell`. */
+function stripIndentPrefix(cell) {
+  const walker = document.createTreeWalker(cell, NodeFilter.SHOW_TEXT);
+  const node = walker.nextNode();
+  if (node) node.textContent = node.textContent.replace(/^[_\u3000\u00a0 ]+/, '');
+}
+
 function transformToTree(table) {
   if (isTransformed(table)) {
     notify('すでに変換済みです。先に「元に戻す」を実行してください。');
@@ -264,30 +281,49 @@ function transformToTree(table) {
   saveSnapshot(table);
   ensureStructure(table);
 
-  // Find the level column — searches both <th> and <td> header cells
   const headCells = getHeaderCells(table);
-  const lvIdx = headCells.findIndex(c => LEVEL_RE.test(c.textContent.trim()));
+  const lvIdx     = headCells.findIndex(c => LEVEL_RE.test(c.textContent.trim()));
+  const rows      = getBodyRows(table);
 
-  if (lvIdx === -1) {
-    notify('レベル列が見つかりません。\nヘッダーに "Level" / "レベル" / "Lv" / "階層" 列が必要です。');
-    return;
-  }
+  let nodes;
+  let indentMode = false;
 
-  table.classList.add('wte-tree');
-
-  const rows = getBodyRows(table);
-
-  // Build node list — cells[lvIdx] works for both <th>/<td> body cells
-  const nodes = rows.map(row => {
-    const raw = parseInt(row.cells[lvIdx]?.textContent.trim(), 10);
-    return {
+  if (lvIdx !== -1) {
+    // ── Level-column mode ──────────────────────────────────────────────
+    nodes = rows.map(row => {
+      const raw = parseInt(row.cells[lvIdx]?.textContent.trim(), 10);
+      return {
+        el:       row,
+        level:    isNaN(raw) || raw < 1 ? 1 : raw,
+        children: [],
+        parent:   null,
+        open:     true
+      };
+    });
+  } else {
+    // ── Underscore-indent mode  (e.g. "0", "_1", "__2") ───────────────
+    const hasIndent = rows.some(
+      row => /^[_\u3000\u00a0 ]+/.test(row.cells[0]?.textContent.trim() ?? '')
+    );
+    if (!hasIndent) {
+      notify(
+        'レベル列が見つかりません。\n' +
+        'ヘッダーに "Level" / "レベル" / "Lv" / "階層" 列、\n' +
+        'または先頭列の値を "_" で字下げしてください。'
+      );
+      return;
+    }
+    indentMode = true;
+    nodes = rows.map(row => ({
       el:       row,
-      level:    isNaN(raw) || raw < 1 ? 1 : raw,
+      level:    underscoreLevel(row.cells[0]?.textContent.trim() ?? ''),
       children: [],
       parent:   null,
       open:     true
-    };
-  });
+    }));
+  }
+
+  table.classList.add('wte-tree');
 
   // Stack-based O(n) parent-child linking
   const stack = [];
@@ -299,6 +335,14 @@ function transformToTree(table) {
     }
     stack.push(node);
   });
+
+  // Strip indent prefixes before injecting buttons (indent mode only)
+  if (indentMode) {
+    nodes.forEach(node => {
+      const cell = node.el.cells[0];
+      if (cell) stripIndentPrefix(cell);
+    });
+  }
 
   // Inject toggle buttons and indentation
   nodes.forEach(node => {
@@ -317,7 +361,7 @@ function transformToTree(table) {
       btn.addEventListener('click', e => { e.stopPropagation(); toggleNode(node, btn); });
       cell.insertBefore(btn, cell.firstChild);
     } else {
-      // Leaf node — spacer keeps text alignment with parent rows
+      // Leaf node — spacer keeps text aligned with toggle-button rows
       const spc = document.createElement('span');
       spc.className = 'wte-spc';
       cell.insertBefore(spc, cell.firstChild);
