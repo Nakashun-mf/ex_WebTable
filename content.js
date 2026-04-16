@@ -427,6 +427,18 @@ function transformToTree(table) {
     stack.push(node);
   });
 
+  // Mark each node as last-child within its parent's children list
+  nodes.forEach(node => {
+    if (node.parent) {
+      const siblings = node.parent.children;
+      node.isLastChild = (siblings[siblings.length - 1] === node);
+    } else {
+      node.isLastChild = false; // updated below for last root
+    }
+  });
+  const rootNodes = nodes.filter(n => !n.parent);
+  if (rootNodes.length) rootNodes[rootNodes.length - 1].isLastChild = true;
+
   // Strip indent prefixes before injecting buttons (indent mode only)
   if (indentMode) {
     nodes.forEach(node => {
@@ -435,15 +447,13 @@ function transformToTree(table) {
     });
   }
 
-  // Inject toggle buttons and indentation
+  // Inject tree-line prefix spans, then toggle button / leaf spacer
   nodes.forEach(node => {
     const cell = node.el.cells[0];
     if (!cell) return;
 
-    const indentPx = 8 + (node.level - 1) * 20;
-    // Use CSS custom property so it overrides the !important padding in stylesheet
-    cell.style.setProperty('--wte-indent', `${indentPx}px`);
-
+    // ① toggle button or spacer
+    let marker;
     if (node.children.length) {
       const btn = document.createElement('button');
       btn.className = 'wte-btn';
@@ -451,17 +461,58 @@ function transformToTree(table) {
       btn.title = '折りたたむ';
       btn.setAttribute('aria-expanded', 'true');
       btn.addEventListener('click', e => { e.stopPropagation(); toggleNode(node, btn); });
-      cell.insertBefore(btn, cell.firstChild);
+      marker = btn;
     } else {
-      // Leaf node — spacer keeps text aligned with toggle-button rows
       const spc = document.createElement('span');
       spc.className = 'wte-spc';
-      cell.insertBefore(spc, cell.firstChild);
+      marker = spc;
+    }
+    cell.insertBefore(marker, cell.firstChild);
+
+    // ② tree-line prefix (inserted before the button/spacer)
+    const types = treeLineTypes(node);
+    if (types.length) {
+      const prefix = document.createElement('span');
+      prefix.className = 'wte-tree-prefix';
+      types.forEach(t => {
+        const s = document.createElement('span');
+        s.className = `wte-tl-${t}`;
+        prefix.appendChild(s);
+      });
+      cell.insertBefore(prefix, marker);
     }
   });
 
   setupTableInteraction(table);
   notify('ツリー表示に変換しました ✓');
+}
+
+/**
+ * Returns the ordered list of line-slot types for a node's prefix:
+ *   'gap'   – ancestor at this level was the last child (no continuation line)
+ *   'vline' – ancestor at this level still has siblings below (│)
+ *   'mid'   – current node is NOT the last child (├─)
+ *   'last'  – current node IS  the last child    (└─)
+ * Root nodes return [] (no prefix needed).
+ */
+function treeLineTypes(node) {
+  if (!node.parent) return [];
+
+  // Build chain from root down to this node
+  const chain = [];
+  let cur = node;
+  while (cur) { chain.unshift(cur); cur = cur.parent; }
+  // chain[0] = root, chain[last] = node
+
+  const types = [];
+  // For each intermediate ancestor (chain[1] .. chain[length-2]):
+  // draw a continuation line if that ancestor is NOT the last child
+  for (let i = 1; i < chain.length - 1; i++) {
+    types.push(chain[i].isLastChild ? 'gap' : 'vline');
+  }
+  // Connector for the current node itself
+  types.push(node.isLastChild ? 'last' : 'mid');
+  return types;
 }
 
 function toggleNode(node, btn) {
