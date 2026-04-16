@@ -62,6 +62,34 @@
       table._wteSnapNode = table.cloneNode(true);
     }
   }
+  function cleanCell(cell) {
+    const c = cell.cloneNode(true);
+    c.querySelectorAll(".wte-arrow, .wte-btn, .wte-spc, .wte-th-controls, .wte-col-resizer, .wte-filter-btn").forEach((n) => n.remove());
+    return c.textContent.trim();
+  }
+  function positionPopup(el, x, y) {
+    el.style.visibility = "hidden";
+    el.style.left = "-9999px";
+    el.style.top = "-9999px";
+    requestAnimationFrame(() => {
+      const pw = el.offsetWidth;
+      const ph = el.offsetHeight;
+      const vw = window.innerWidth;
+      const vh = window.innerHeight;
+      el.style.left = `${Math.max(8, Math.min(x, vw - pw - 8))}px`;
+      el.style.top = `${Math.max(8, Math.min(y, vh - ph - 8))}px`;
+      el.style.visibility = "";
+    });
+  }
+  function addOutsideClickListener(el, onClose) {
+    const handler = (e) => {
+      if (!el.contains(e.target)) {
+        onClose();
+        document.removeEventListener("click", handler, { capture: true });
+      }
+    };
+    setTimeout(() => document.addEventListener("click", handler, { capture: true }), 0);
+  }
   var init_utils = __esm({
     "src/utils.js"() {
     }
@@ -268,27 +296,8 @@
     updateDisabledStates();
     panel.appendChild(list);
     document.body.appendChild(panel);
-    panel.style.visibility = "hidden";
-    panel.style.left = "-9999px";
-    panel.style.top = "-9999px";
-    requestAnimationFrame(() => {
-      const pw = panel.offsetWidth;
-      const ph = panel.offsetHeight;
-      const vw = window.innerWidth;
-      const vh = window.innerHeight;
-      const x = Math.max(8, Math.min(clientX, vw - pw - 8));
-      const y = Math.max(8, Math.min(clientY, vh - ph - 8));
-      panel.style.left = `${x}px`;
-      panel.style.top = `${y}px`;
-      panel.style.visibility = "";
-    });
-    const onOutsideClick = (e) => {
-      if (!panel.contains(e.target)) {
-        hideColVisibilityPanel();
-        document.removeEventListener("click", onOutsideClick, { capture: true });
-      }
-    };
-    setTimeout(() => document.addEventListener("click", onOutsideClick, { capture: true }), 0);
+    positionPopup(panel, clientX, clientY);
+    addOutsideClickListener(panel, hideColVisibilityPanel);
   }
   function getVisibleColIndices(table) {
     const hidden = table._wteHiddenCols || /* @__PURE__ */ new Set();
@@ -545,6 +554,11 @@
     addColReorderHandles(table);
     notify("\u30C4\u30EA\u30FC\u8868\u793A\u306B\u5909\u63DB\u3057\u307E\u3057\u305F \u2713");
   }
+  function setToggleBtn(btn, open) {
+    btn.textContent = open ? "\u2212" : "+";
+    btn.title = open ? "\u6298\u308A\u305F\u305F\u3080" : "\u5C55\u958B\u3059\u308B";
+    btn.setAttribute("aria-expanded", String(open));
+  }
   function expandAll(table) {
     const nodes = table._wteNodes;
     if (!nodes) return;
@@ -553,11 +567,7 @@
       if (node.children.length) {
         node.open = true;
         const btn = node.el.cells[0]?.querySelector(".wte-btn");
-        if (btn) {
-          btn.textContent = "\u2212";
-          btn.title = "\u6298\u308A\u305F\u305F\u3080";
-          btn.setAttribute("aria-expanded", "true");
-        }
+        if (btn) setToggleBtn(btn, true);
       }
     });
   }
@@ -569,11 +579,7 @@
       if (node.children.length) {
         node.open = false;
         const btn = node.el.cells[0]?.querySelector(".wte-btn");
-        if (btn) {
-          btn.textContent = "+";
-          btn.title = "\u5C55\u958B\u3059\u308B";
-          btn.setAttribute("aria-expanded", "false");
-        }
+        if (btn) setToggleBtn(btn, false);
       }
     });
   }
@@ -586,21 +592,14 @@
         const open = node.level < maxLevel;
         node.open = open;
         const btn = node.el.cells[0]?.querySelector(".wte-btn");
-        if (btn) {
-          btn.textContent = open ? "\u2212" : "+";
-          btn.title = open ? "\u6298\u308A\u305F\u305F\u3080" : "\u5C55\u958B\u3059\u308B";
-          btn.setAttribute("aria-expanded", open ? "true" : "false");
-        }
+        if (btn) setToggleBtn(btn, open);
       }
     });
   }
   function toggleNode(node, btn) {
-    const closing = node.open;
-    node.open = !closing;
-    btn.textContent = closing ? "+" : "\u2212";
-    btn.title = closing ? "\u5C55\u958B\u3059\u308B" : "\u6298\u308A\u305F\u305F\u3080";
-    btn.setAttribute("aria-expanded", closing ? "false" : "true");
-    applyVisibility(node.children, !closing);
+    node.open = !node.open;
+    setToggleBtn(btn, node.open);
+    applyVisibility(node.children, node.open);
   }
   function applyVisibility(children, show) {
     children.forEach((c) => {
@@ -762,13 +761,7 @@
       panel.style.left = `${Math.max(8, left)}px`;
       panel.style.top = `${Math.max(8, top)}px`;
     });
-    const onOutsideClick = (e) => {
-      if (!panel.contains(e.target)) {
-        hideColFilterPanel();
-        document.removeEventListener("click", onOutsideClick, { capture: true });
-      }
-    };
-    setTimeout(() => document.addEventListener("click", onOutsideClick, { capture: true }), 0);
+    addOutsideClickListener(panel, hideColFilterPanel);
   }
   var init_filters = __esm({
     "src/filters.js"() {
@@ -1097,11 +1090,6 @@
       notify("\u8868\u793A\u4E2D\u306E\u5217\u304C\u3042\u308A\u307E\u305B\u3093\u3002");
       return;
     }
-    const cleanCell = (cell) => {
-      const c = cell.cloneNode(true);
-      c.querySelectorAll(".wte-arrow, .wte-btn, .wte-spc, .wte-th-controls, .wte-col-resizer, .wte-filter-btn").forEach((n) => n.remove());
-      return c.textContent.trim();
-    };
     const escCSV = (s) => {
       if (s.includes(",") || s.includes('"') || s.includes("\n") || s.includes("\r")) {
         return '"' + s.replace(/"/g, '""') + '"';
@@ -1276,19 +1264,8 @@
       resetTable(table);
       hideMenu();
     }));
-    menu.style.visibility = "hidden";
-    menu.style.left = "-9999px";
-    menu.style.top = "-9999px";
     menu.hidden = false;
-    const mw = menu.offsetWidth;
-    const mh = menu.offsetHeight;
-    const vw = window.innerWidth;
-    const vh = window.innerHeight;
-    const x = Math.max(8, Math.min(clientX, vw - mw - 8));
-    const y = Math.max(8, Math.min(clientY, vh - mh - 8));
-    menu.style.left = `${x}px`;
-    menu.style.top = `${y}px`;
-    menu.style.visibility = "";
+    positionPopup(menu, clientX, clientY);
   }
   function makeMenuItem(label, onClick, disabled = false) {
     const el = document.createElement("div");
@@ -1314,15 +1291,10 @@
       notify("\u30B3\u30D4\u30FC\u3059\u308B\u884C\u304C\u3042\u308A\u307E\u305B\u3093\u3002");
       return;
     }
-    const hidden = table._wteHiddenCols || /* @__PURE__ */ new Set();
     const headers = getHeaderCells(table);
-    const visColIdxs = Array.from({ length: headers.length }, (_, i) => i).filter((i) => !hidden.has(i));
+    const visColIdxs = getVisibleColIndices(table);
     const esc = (s) => s.replace(/[\t\n]/g, " ");
-    const text = (cell) => {
-      const c = cell.cloneNode(true);
-      c.querySelectorAll(".wte-arrow, .wte-btn, .wte-spc, .wte-th-controls, .wte-col-resizer, .wte-filter-btn").forEach((n) => n.remove());
-      return esc(c.textContent.trim());
-    };
+    const text = (cell) => esc(cleanCell(cell));
     const emptyCell = document.createElement("td");
     const lines = [];
     if (includeHeader) lines.push(visColIdxs.map((i) => text(headers[i])).join("	"));
