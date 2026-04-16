@@ -21,11 +21,17 @@
     el.setAttribute("role", "status");
     el.setAttribute("aria-live", "polite");
     el.textContent = text;
-    el.addEventListener("click", () => el.remove());
     document.body.appendChild(el);
-    setTimeout(() => {
+    const onKey = (e) => {
+      if (e.key === "Escape") remove();
+    };
+    const remove = () => {
       if (el.isConnected) el.remove();
-    }, 3500);
+      document.removeEventListener("keydown", onKey);
+    };
+    el.addEventListener("click", remove);
+    document.addEventListener("keydown", onKey);
+    setTimeout(remove, 3500);
   }
   function ensureStructure(table) {
     if (table.tHead) return;
