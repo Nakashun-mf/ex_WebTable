@@ -3,12 +3,14 @@
   "version": "1.1.0",
   "description": "Chrome extension to transform HTML tables with rich sorting/filtering and tree view",
   "private": true,
+  "type": "module",
   "scripts": {
     "build": "esbuild src/index.js --bundle --outfile=content.js --format=iife",
     "watch": "esbuild src/index.js --bundle --outfile=content.js --format=iife --watch",
     "lint": "eslint src/"
   },
   "devDependencies": {
+    "@eslint/js": "^9.0.0",
     "esbuild": "^0.25.0",
     "eslint": "^9.0.0"
   }

@@ -1075,7 +1075,6 @@
 
   // src/menu.js
   init_utils();
-  init_utils();
   init_filters();
   init_colvis();
 
