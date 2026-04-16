@@ -1,6 +1,6 @@
 // Column visibility — show/hide columns and the visibility management panel.
 
-import { getHeaderCells, getBodyRows, notify } from './utils.js';
+import { getHeaderCells, getBodyRows, getCachedBodyRows, notify } from './utils.js';
 import { shiftIndex } from './remap.js';
 
 /** Returns the column index of a header cell (data-col if available, else DOM position). */
@@ -26,7 +26,7 @@ export function applyColVisibility(table) {
   const hidden = table._wteHiddenCols || new Set();
   const allRows = [
     ...(table.tHead ? Array.from(table.tHead.rows) : []),
-    ...getBodyRows(table)
+    ...getCachedBodyRows(table)
   ];
   allRows.forEach(row => {
     Array.from(row.cells).forEach((cell, i) => {

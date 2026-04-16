@@ -1,6 +1,6 @@
 // Column filter panel (Excel-like per-column checkbox filters) and global search.
 
-import { getBodyRows } from './utils.js';
+import { getBodyRows, getCachedBodyRows } from './utils.js';
 
 /** Apply global search + all active column filters together. */
 export function applyAllFilters(table) {
@@ -8,19 +8,22 @@ export function applyAllFilters(table) {
   const searchQ       = (table._wteSearchQuery || '').toLowerCase();
   const hasColFilters = Object.keys(colFilters).length > 0;
 
-  getBodyRows(table).forEach(row => {
+  getCachedBodyRows(table).forEach(row => {
     let visible = true;
 
-    // Global text search
-    if (searchQ && !row.textContent.toLowerCase().includes(searchQ)) {
-      visible = false;
+    // Global text search — use pre-computed lowercase text when available.
+    if (searchQ) {
+      const text = row._wteText ?? row.textContent.toLowerCase();
+      if (!text.includes(searchQ)) visible = false;
     }
 
-    // Column-level checkbox filters
+    // Column-level checkbox filters — use pre-computed cell texts when available.
     if (visible && hasColFilters) {
       for (const [idxStr, filter] of Object.entries(colFilters)) {
-        const cell     = row.cells[parseInt(idxStr)];
-        const cellText = cell?.textContent.trim() ?? '';
+        const idx      = parseInt(idxStr);
+        const cellText = row._wteCells
+          ? (row._wteCells[idx] ?? '')
+          : (row.cells[idx]?.textContent.trim() ?? '');
         if (filter.checkedValues && !filter.checkedValues.has(cellText)) {
           visible = false;
           break;
@@ -49,7 +52,7 @@ export function showColFilterPanel(table, colIdx, th) {
   }
 
   // Collect unique values from this column across all body rows
-  const rows = getBodyRows(table);
+  const rows = getCachedBodyRows(table);
   const uniqueValues = [...new Set(
     rows.map(r => r.cells[colIdx]?.textContent.trim() ?? '')
   )].sort((a, b) => a.localeCompare(b, 'ja'));

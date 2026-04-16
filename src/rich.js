@@ -1,7 +1,7 @@
 // Rich table transformation — sorting, filtering, resize, reorder.
 
 import {
-  getHeaderCells, getBodyRows, ensureStructure,
+  getHeaderCells, getBodyRows, getCachedBodyRows, ensureStructure,
   isTransformed, saveSnapshot, notify
 } from './utils.js';
 import { sortBy } from './sort.js';
@@ -40,6 +40,17 @@ export function transformToRich(table) {
   table._wteColFilters  = {};
   table._wteSearchQuery = '';
   ensureStructure(table);
+
+  // Pre-compute text caches on each body row to avoid live DOM reads during
+  // filtering. Set before header-cell setup so all rows are already in tbody.
+  {
+    const bodyRows = getBodyRows(table);
+    table._wteBodyRowsCache = bodyRows;
+    bodyRows.forEach(row => {
+      row._wteText  = row.textContent.toLowerCase();
+      row._wteCells = Array.from(row.cells).map(c => c.textContent.trim());
+    });
+  }
 
   // Make header cells sortable with two-row layout (label + controls)
   getHeaderCells(table).forEach((cell, i) => {
@@ -92,7 +103,7 @@ export function transformToRich(table) {
   // Live search filter
   const applyStripes = () => {
     let n = 0;
-    getBodyRows(table).forEach(r => {
+    getCachedBodyRows(table).forEach(r => {
       if (!r.hidden) n++;
       r.classList.toggle('wte-stripe', !r.hidden && n % 2 === 0);
     });
@@ -100,7 +111,7 @@ export function transformToRich(table) {
   table._wteApplyStripes = applyStripes;
 
   const refreshCount = () => {
-    const rows = getBodyRows(table);
+    const rows = getCachedBodyRows(table);
     const vis  = rows.filter(r => !r.hidden).length;
     counter.textContent = vis === rows.length
       ? `${rows.length} 件`
@@ -108,9 +119,14 @@ export function transformToRich(table) {
   };
   table._wteRefreshCount = refreshCount;
 
+  // Debounce search to avoid running filter on every keystroke.
+  let _searchTimer;
   search.addEventListener('input', () => {
-    table._wteSearchQuery = search.value;
-    applyAllFilters(table);
+    clearTimeout(_searchTimer);
+    _searchTimer = setTimeout(() => {
+      table._wteSearchQuery = search.value;
+      applyAllFilters(table);
+    }, 150);
   });
 
   refreshCount();
