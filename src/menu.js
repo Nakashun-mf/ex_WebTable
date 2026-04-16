@@ -1,7 +1,6 @@
 // Custom in-page context menu for transformed tables.
 
 import { getHeaderCells, notify } from './utils.js';
-import { getBodyRows } from './utils.js';
 import { hideColFilterPanel } from './filters.js';
 import {
   getThColIdx, hideColumn, hideColVisibilityPanel,

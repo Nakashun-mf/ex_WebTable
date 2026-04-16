@@ -1,6 +1,6 @@
 // Column visibility — show/hide columns and the visibility management panel.
 
-import { getHeaderCells, getBodyRows, getCachedBodyRows, notify } from './utils.js';
+import { getHeaderCells, getCachedBodyRows, notify } from './utils.js';
 import { saveSession } from './session.js';
 import { shiftIndex } from './remap.js';
 
