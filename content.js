@@ -666,7 +666,7 @@
   }
 
   // src/tree.js
-  var LEVEL_RE = /^(level|レベル|階層|lv\.?|depth|深さ)$/i;
+  var LEVEL_RE = /^(level|lvl|lv\.?|tier|rank|indent|node|step|depth|レベル|階層|深さ|深度|段階|ノード)$/i;
   function underscoreLevel(text) {
     const m = text.match(/^[_\u3000\u00a0 ]*/);
     return (m ? m[0].length : 0) + 1;
@@ -702,7 +702,7 @@
       );
       if (!hasIndent) {
         notify(
-          '\u30EC\u30D9\u30EB\u5217\u304C\u898B\u3064\u304B\u308A\u307E\u305B\u3093\u3002\n\u30D8\u30C3\u30C0\u30FC\u306B "Level" / "\u30EC\u30D9\u30EB" / "Lv" / "\u968E\u5C64" \u5217\u3001\n\u307E\u305F\u306F\u5148\u982D\u5217\u306E\u5024\u3092 "_" \u3067\u5B57\u4E0B\u3052\u3057\u3066\u304F\u3060\u3055\u3044\u3002'
+          "\u30EC\u30D9\u30EB\u5217\u304C\u898B\u3064\u304B\u308A\u307E\u305B\u3093\u3002\n\u5BFE\u5FDC\u5217\u540D: Level / Lvl / Lv / Tier / Rank / Indent / Node / Step / Depth\n\u3000\u3000\u3000\u3000\u3000\u30EC\u30D9\u30EB / \u968E\u5C64 / \u6DF1\u3055 / \u6DF1\u5EA6 / \u6BB5\u968E / \u30CE\u30FC\u30C9\n\u307E\u305F\u306F\u5148\u982D\u5217\u306E\u5024\u3092\u300C_\u300D\u3067\u5B57\u4E0B\u3052\u3057\u3066\u304F\u3060\u3055\u3044\u3002"
         );
         return;
       }
