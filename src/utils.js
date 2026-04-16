@@ -59,6 +59,11 @@ export function getBodyRows(table) {
   return Array.from(table.tBodies).flatMap(tb => Array.from(tb.rows));
 }
 
+/** Returns the cached body-rows array when available, falling back to a live query. */
+export function getCachedBodyRows(table) {
+  return table._wteBodyRowsCache ?? getBodyRows(table);
+}
+
 export function isTransformed(table) {
   return table.classList.contains('wte-rich') || table.classList.contains('wte-tree');
 }

@@ -31,6 +31,7 @@ export function sortBy(table, col) {
       // Consolidate all body rows into a single tbody (removes multi-tbody fragmentation)
       const tbody = table.tBodies[0] ?? table.createTBody();
       originalOrder.forEach(r => tbody.appendChild(r));
+      table._wteBodyRowsCache = [...originalOrder];
     }
     if (typeof table._wteApplyStripes === 'function') table._wteApplyStripes();
     return;
@@ -48,6 +49,8 @@ export function sortBy(table, col) {
   // Consolidate all body rows into tBodies[0] to handle multi-tbody tables
   const tbody = table.tBodies[0] ?? table.createTBody();
   rows.forEach(r => tbody.appendChild(r));
+  // Keep cache in sync with new DOM order after sort.
+  table._wteBodyRowsCache = rows;
   if (typeof table._wteApplyStripes === 'function') table._wteApplyStripes();
 }
 

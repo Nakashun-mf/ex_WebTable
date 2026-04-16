@@ -29,6 +29,7 @@ export function resetTable(table) {
 
   table.classList.remove('wte-rich', 'wte-tree');
   delete table._wteSnapNode;
+  delete table._wteBodyRowsCache;
   delete table._wteOriginalOrder;
   delete table._wteApplyStripes;
   delete table._wteInteractionSetup;

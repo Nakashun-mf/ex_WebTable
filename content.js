@@ -35,6 +35,9 @@
   function getBodyRows(table) {
     return Array.from(table.tBodies).flatMap((tb) => Array.from(tb.rows));
   }
+  function getCachedBodyRows(table) {
+    return table._wteBodyRowsCache ?? getBodyRows(table);
+  }
   function isTransformed(table) {
     return table.classList.contains("wte-rich") || table.classList.contains("wte-tree");
   }
@@ -66,6 +69,7 @@
       if (originalOrder) {
         const tbody2 = table.tBodies[0] ?? table.createTBody();
         originalOrder.forEach((r) => tbody2.appendChild(r));
+        table._wteBodyRowsCache = [...originalOrder];
       }
       if (typeof table._wteApplyStripes === "function") table._wteApplyStripes();
       return;
@@ -77,6 +81,7 @@
     rows.sort((a, b) => cmpCells(a.cells[col], b.cells[col], next === "asc"));
     const tbody = table.tBodies[0] ?? table.createTBody();
     rows.forEach((r) => tbody.appendChild(r));
+    table._wteBodyRowsCache = rows;
     if (typeof table._wteApplyStripes === "function") table._wteApplyStripes();
   }
   function cmpCells(a, b, asc) {
@@ -99,15 +104,16 @@
     const colFilters = table._wteColFilters || {};
     const searchQ = (table._wteSearchQuery || "").toLowerCase();
     const hasColFilters = Object.keys(colFilters).length > 0;
-    getBodyRows(table).forEach((row) => {
+    getCachedBodyRows(table).forEach((row) => {
       let visible = true;
-      if (searchQ && !row.textContent.toLowerCase().includes(searchQ)) {
-        visible = false;
+      if (searchQ) {
+        const text = row._wteText ?? row.textContent.toLowerCase();
+        if (!text.includes(searchQ)) visible = false;
       }
       if (visible && hasColFilters) {
         for (const [idxStr, filter] of Object.entries(colFilters)) {
-          const cell = row.cells[parseInt(idxStr)];
-          const cellText = cell?.textContent.trim() ?? "";
+          const idx = parseInt(idxStr);
+          const cellText = row._wteCells ? row._wteCells[idx] ?? "" : row.cells[idx]?.textContent.trim() ?? "";
           if (filter.checkedValues && !filter.checkedValues.has(cellText)) {
             visible = false;
             break;
@@ -129,7 +135,7 @@
       hideColFilterPanel();
       if (isSame) return;
     }
-    const rows = getBodyRows(table);
+    const rows = getCachedBodyRows(table);
     const uniqueValues = [...new Set(
       rows.map((r) => r.cells[colIdx]?.textContent.trim() ?? "")
     )].sort((a, b) => a.localeCompare(b, "ja"));
@@ -329,7 +335,7 @@
     const hidden = table._wteHiddenCols || /* @__PURE__ */ new Set();
     const allRows = [
       ...table.tHead ? Array.from(table.tHead.rows) : [],
-      ...getBodyRows(table)
+      ...getCachedBodyRows(table)
     ];
     allRows.forEach((row) => {
       Array.from(row.cells).forEach((cell, i) => {
@@ -586,6 +592,14 @@
     table._wteColFilters = {};
     table._wteSearchQuery = "";
     ensureStructure(table);
+    {
+      const bodyRows = getBodyRows(table);
+      table._wteBodyRowsCache = bodyRows;
+      bodyRows.forEach((row) => {
+        row._wteText = row.textContent.toLowerCase();
+        row._wteCells = Array.from(row.cells).map((c) => c.textContent.trim());
+      });
+    }
     getHeaderCells(table).forEach((cell, i) => {
       cell.classList.add("wte-th");
       cell.dataset.col = i;
@@ -623,21 +637,25 @@
     });
     const applyStripes = () => {
       let n = 0;
-      getBodyRows(table).forEach((r) => {
+      getCachedBodyRows(table).forEach((r) => {
         if (!r.hidden) n++;
         r.classList.toggle("wte-stripe", !r.hidden && n % 2 === 0);
       });
     };
     table._wteApplyStripes = applyStripes;
     const refreshCount = () => {
-      const rows = getBodyRows(table);
+      const rows = getCachedBodyRows(table);
       const vis = rows.filter((r) => !r.hidden).length;
       counter.textContent = vis === rows.length ? `${rows.length} \u4EF6` : `${vis} / ${rows.length} \u4EF6`;
     };
     table._wteRefreshCount = refreshCount;
+    let _searchTimer;
     search.addEventListener("input", () => {
-      table._wteSearchQuery = search.value;
-      applyAllFilters(table);
+      clearTimeout(_searchTimer);
+      _searchTimer = setTimeout(() => {
+        table._wteSearchQuery = search.value;
+        applyAllFilters(table);
+      }, 150);
     });
     refreshCount();
     applyStripes();
@@ -828,6 +846,7 @@
     else table.removeAttribute("style");
     table.classList.remove("wte-rich", "wte-tree");
     delete table._wteSnapNode;
+    delete table._wteBodyRowsCache;
     delete table._wteOriginalOrder;
     delete table._wteApplyStripes;
     delete table._wteInteractionSetup;
