@@ -291,14 +291,12 @@ function transformToTree(table) {
   if (lvIdx !== -1) {
     // ── Level-column mode ──────────────────────────────────────────────
     nodes = rows.map(row => {
-      const raw = parseInt(row.cells[lvIdx]?.textContent.trim(), 10);
-      return {
-        el:       row,
-        level:    isNaN(raw) || raw < 1 ? 1 : raw,
-        children: [],
-        parent:   null,
-        open:     true
-      };
+      const cellText = row.cells[lvIdx]?.textContent.trim() ?? '';
+      const raw = parseInt(cellText, 10);
+      // Use numeric value if valid (≥1). Otherwise fall back to
+      // underscore-indent counting so values like "0", "_1", "__2" work.
+      const level = (!isNaN(raw) && raw >= 1) ? raw : underscoreLevel(cellText);
+      return { el: row, level, children: [], parent: null, open: true };
     });
   } else {
     // ── Underscore-indent mode  (e.g. "0", "_1", "__2") ───────────────
