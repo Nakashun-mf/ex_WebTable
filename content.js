@@ -482,7 +482,7 @@ function addColResizeHandles(table) {
       handle.addEventListener('mousedown', e => {
         e.stopPropagation();
         e.preventDefault();
-        const col = table._wteCols[i];
+        const col = table._wteCols[parseInt(th.dataset.col)];
         if (!col) return;
         const startX = e.clientX;
         const startW = th.offsetWidth;
