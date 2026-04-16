@@ -1,6 +1,6 @@
 {
   "name": "webtable-enhancer",
-  "version": "1.0.2",
+  "version": "1.1.0",
   "description": "Chrome extension to transform HTML tables with rich sorting/filtering and tree view",
   "private": true,
   "scripts": {
