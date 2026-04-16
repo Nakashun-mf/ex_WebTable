@@ -477,3 +477,70 @@
   background: var(--wte-bg-hover) !important;
   color: var(--wte-text-body) !important;
 }
+
+/* ─── Hidden column cell ─────────────────────────────────────────────── */
+.wte-col-hidden {
+  display: none !important;
+}
+
+/* ─── Column visibility panel ────────────────────────────────────────── */
+.wte-col-vis-panel {
+  position: fixed !important;
+  z-index: 2147483644 !important;
+  width: 220px !important;
+  background: #ffffff !important;
+  border: 1px solid var(--wte-border) !important;
+  border-radius: 8px !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, .15) !important;
+  font: 13px/1.5 system-ui, -apple-system, sans-serif !important;
+  color: var(--wte-text-body) !important;
+  overflow: hidden !important;
+}
+
+.wte-col-vis-title {
+  padding: 8px 12px !important;
+  font-weight: 600 !important;
+  font-size: 12px !important;
+  color: var(--wte-text-muted) !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.04em !important;
+  border-bottom: 1px solid var(--wte-border) !important;
+  background: var(--wte-bg-toolbar) !important;
+}
+
+.wte-col-vis-list {
+  max-height: 240px !important;
+  overflow-y: auto !important;
+  padding: 4px 0 !important;
+}
+
+.wte-col-vis-item {
+  display: flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  padding: 6px 12px !important;
+  cursor: pointer !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  transition: background .1s !important;
+}
+
+.wte-col-vis-item:not(.wte-col-vis-locked):hover {
+  background: var(--wte-bg-hover) !important;
+}
+
+.wte-col-vis-locked {
+  opacity: 0.45 !important;
+  cursor: default !important;
+}
+
+.wte-col-vis-item input[type="checkbox"] {
+  cursor: pointer !important;
+  flex-shrink: 0 !important;
+  margin: 0 !important;
+}
+
+.wte-col-vis-locked input[type="checkbox"] {
+  cursor: default !important;
+}
