@@ -8,8 +8,10 @@ import { addColResizeHandles } from './resize.js';
 import { addColReorderHandles } from './reorder.js';
 import { setupTableInteraction } from './interaction.js';
 
-// Matches common level-column header names (th OR td)
-export const LEVEL_RE = /^(level|レベル|階層|lv\.?|depth|深さ)$/i;
+// Matches common level-column header names (th OR td).
+// Covers English abbreviations (lvl, lv, tier, rank, indent, node, step, depth)
+// and Japanese terms (レベル, 階層, 深さ, 深度, 段階, ノード).
+export const LEVEL_RE = /^(level|lvl|lv\.?|tier|rank|indent|node|step|depth|レベル|階層|深さ|深度|段階|ノード)$/i;
 
 /**
  * Returns the indent level encoded by leading underscores (or full-width
@@ -63,8 +65,9 @@ export function transformToTree(table) {
     if (!hasIndent) {
       notify(
         'レベル列が見つかりません。\n' +
-        'ヘッダーに "Level" / "レベル" / "Lv" / "階層" 列、\n' +
-        'または先頭列の値を "_" で字下げしてください。'
+        '対応列名: Level / Lvl / Lv / Tier / Rank / Indent / Node / Step / Depth\n' +
+        '　　　　　レベル / 階層 / 深さ / 深度 / 段階 / ノード\n' +
+        'または先頭列の値を「_」で字下げしてください。'
       );
       return;
     }
