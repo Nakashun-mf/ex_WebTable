@@ -550,6 +550,8 @@ function transformToTree(table) {
   });
 
   setupTableInteraction(table);
+  addColResizeHandles(table);
+  addColReorderHandles(table);
   notify('ツリー表示に変換しました ✓');
 }
 
@@ -659,7 +661,11 @@ document.addEventListener('click', e => {
   if (menu && !menu.hidden && !menu.contains(e.target)) hideMenu();
 });
 document.addEventListener('keydown', e => {
-  if (e.key === 'Escape') hideMenu();
+  if (e.key === 'Escape') {
+    hideMenu();
+    // 変換済みテーブルの行選択をすべて解除
+    document.querySelectorAll('.wte-rich, .wte-tree').forEach(t => clearSelection(t));
+  }
 });
 window.addEventListener('scroll', () => hideMenu(), { passive: true, capture: true });
 
@@ -815,9 +821,34 @@ function copyRowsAsTSV(rows, includeHeader, table) {
   if (includeHeader) lines.push(getHeaderCells(table).map(text).join('\t'));
   visibleRows.forEach(r => lines.push(Array.from(r.cells).map(text).join('\t')));
 
-  navigator.clipboard.writeText(lines.join('\n'))
-    .then(() => notify(`${visibleRows.length} 行をコピーしました ✓`))
-    .catch(() => notify('コピーに失敗しました。'));
+  const tsvText = lines.join('\n');
+  const count   = visibleRows.length;
+
+  if (navigator.clipboard?.writeText) {
+    navigator.clipboard.writeText(tsvText)
+      .then(() => notify(`${count} 行をコピーしました ✓`))
+      .catch(() => fallbackCopy(tsvText, count));
+  } else {
+    fallbackCopy(tsvText, count);
+  }
+}
+
+/** HTTP ページなど clipboard API が使えない環境向けフォールバック */
+function fallbackCopy(text, rowCount) {
+  const ta = document.createElement('textarea');
+  ta.value = text;
+  ta.style.cssText = 'position:fixed;opacity:0;top:0;left:0;width:1px;height:1px';
+  document.body.appendChild(ta);
+  ta.focus();
+  ta.select();
+  try {
+    const ok = document.execCommand('copy');
+    notify(ok ? `${rowCount} 行をコピーしました ✓` : 'コピーに失敗しました。');
+  } catch {
+    notify('コピーに失敗しました。');
+  } finally {
+    ta.remove();
+  }
 }
 
 /* ─── Row Interaction (selection & highlight) ──────────────────────────── */
