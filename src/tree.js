@@ -149,6 +149,12 @@ export function transformToTree(table) {
 
 // ── Expand / Collapse ──────────────────────────────────────────────────────
 
+function setToggleBtn(btn, open) {
+  btn.textContent = open ? '−' : '+';
+  btn.title       = open ? '折りたたむ' : '展開する';
+  btn.setAttribute('aria-expanded', String(open));
+}
+
 export function expandAll(table) {
   const nodes = table._wteNodes;
   if (!nodes) return;
@@ -157,7 +163,7 @@ export function expandAll(table) {
     if (node.children.length) {
       node.open = true;
       const btn = node.el.cells[0]?.querySelector('.wte-btn');
-      if (btn) { btn.textContent = '−'; btn.title = '折りたたむ'; btn.setAttribute('aria-expanded', 'true'); }
+      if (btn) setToggleBtn(btn, true);
     }
   });
 }
@@ -170,7 +176,7 @@ export function collapseAll(table) {
     if (node.children.length) {
       node.open = false;
       const btn = node.el.cells[0]?.querySelector('.wte-btn');
-      if (btn) { btn.textContent = '+'; btn.title = '展開する'; btn.setAttribute('aria-expanded', 'false'); }
+      if (btn) setToggleBtn(btn, false);
     }
   });
 }
@@ -184,22 +190,15 @@ export function expandToLevel(table, maxLevel) {
       const open = node.level < maxLevel;
       node.open  = open;
       const btn  = node.el.cells[0]?.querySelector('.wte-btn');
-      if (btn) {
-        btn.textContent = open ? '−' : '+';
-        btn.title       = open ? '折りたたむ' : '展開する';
-        btn.setAttribute('aria-expanded', open ? 'true' : 'false');
-      }
+      if (btn) setToggleBtn(btn, open);
     }
   });
 }
 
 export function toggleNode(node, btn) {
-  const closing = node.open;
-  node.open = !closing;
-  btn.textContent = closing ? '+' : '−';
-  btn.title       = closing ? '展開する' : '折りたたむ';
-  btn.setAttribute('aria-expanded', closing ? 'false' : 'true');
-  applyVisibility(node.children, !closing);
+  node.open = !node.open;
+  setToggleBtn(btn, node.open);
+  applyVisibility(node.children, node.open);
 }
 
 /** Recursively show/hide descendants, respecting each node's open state. */
