@@ -85,3 +85,44 @@ export function saveSnapshot(table) {
     table._wteSnapNode = table.cloneNode(true);
   }
 }
+
+/** Clones a cell and strips UI chrome elements, returning plain text. */
+export function cleanCell(cell) {
+  const c = cell.cloneNode(true);
+  c.querySelectorAll('.wte-arrow, .wte-btn, .wte-spc, .wte-th-controls, .wte-col-resizer, .wte-filter-btn').forEach(n => n.remove());
+  return c.textContent.trim();
+}
+
+/**
+ * Positions a popup element (already in the DOM) at (x, y), clamped to the
+ * viewport. Hides off-screen first so measurement doesn't cause a flash.
+ */
+export function positionPopup(el, x, y) {
+  el.style.visibility = 'hidden';
+  el.style.left = '-9999px';
+  el.style.top  = '-9999px';
+  requestAnimationFrame(() => {
+    const pw = el.offsetWidth;
+    const ph = el.offsetHeight;
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    el.style.left = `${Math.max(8, Math.min(x, vw - pw - 8))}px`;
+    el.style.top  = `${Math.max(8, Math.min(y, vh - ph - 8))}px`;
+    el.style.visibility = '';
+  });
+}
+
+/**
+ * Registers a document-level click listener that calls onClose when a click
+ * lands outside el. Deferred by one tick so the opening click doesn't
+ * immediately trigger it. Self-removes on first outside click.
+ */
+export function addOutsideClickListener(el, onClose) {
+  const handler = e => {
+    if (!el.contains(e.target)) {
+      onClose();
+      document.removeEventListener('click', handler, { capture: true });
+    }
+  };
+  setTimeout(() => document.addEventListener('click', handler, { capture: true }), 0);
+}

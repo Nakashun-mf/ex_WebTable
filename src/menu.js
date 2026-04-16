@@ -1,6 +1,6 @@
 // Custom in-page context menu for transformed tables.
 
-import { getHeaderCells, notify } from './utils.js';
+import { getHeaderCells, notify, cleanCell, positionPopup } from './utils.js';
 import { hideColFilterPanel } from './filters.js';
 import {
   getThColIdx, hideColumn, hideColVisibilityPanel,
@@ -154,22 +154,8 @@ export function showMenu(clientX, clientY, table, row, th = null) {
   // Reset
   menu.appendChild(makeMenuItem('元に戻す', () => { resetTable(table); hideMenu(); }));
 
-  // Measure off-screen then position
-  menu.style.visibility = 'hidden';
-  menu.style.left = '-9999px';
-  menu.style.top  = '-9999px';
   menu.hidden = false;
-
-  const mw = menu.offsetWidth;
-  const mh = menu.offsetHeight;
-  const vw = window.innerWidth;
-  const vh = window.innerHeight;
-  const x  = Math.max(8, Math.min(clientX, vw - mw - 8));
-  const y  = Math.max(8, Math.min(clientY, vh - mh - 8));
-
-  menu.style.left       = `${x}px`;
-  menu.style.top        = `${y}px`;
-  menu.style.visibility = '';
+  positionPopup(menu, clientX, clientY);
 }
 
 function makeMenuItem(label, onClick, disabled = false) {
@@ -199,11 +185,7 @@ function copyRowsAsTSV(rows, includeHeader, table) {
   const visColIdxs  = Array.from({ length: headers.length }, (_, i) => i).filter(i => !hidden.has(i));
 
   const esc  = s => s.replace(/[\t\n]/g, ' ');
-  const text = cell => {
-    const c = cell.cloneNode(true);
-    c.querySelectorAll('.wte-arrow, .wte-btn, .wte-spc, .wte-th-controls, .wte-col-resizer, .wte-filter-btn').forEach(n => n.remove());
-    return esc(c.textContent.trim());
-  };
+  const text = cell => esc(cleanCell(cell));
 
   const emptyCell = document.createElement('td');
   const lines = [];

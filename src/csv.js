@@ -1,6 +1,6 @@
 // CSV export of visible table rows.
 
-import { getHeaderCells, getBodyRows, notify } from './utils.js';
+import { getHeaderCells, getBodyRows, notify, cleanCell } from './utils.js';
 import { getVisibleColIndices } from './colvis.js';
 
 export function exportTableAsCSV(table) {
@@ -8,12 +8,6 @@ export function exportTableAsCSV(table) {
   const visColIdxs = getVisibleColIndices(table);
 
   if (!visColIdxs.length) { notify('表示中の列がありません。'); return; }
-
-  const cleanCell = cell => {
-    const c = cell.cloneNode(true);
-    c.querySelectorAll('.wte-arrow, .wte-btn, .wte-spc, .wte-th-controls, .wte-col-resizer, .wte-filter-btn').forEach(n => n.remove());
-    return c.textContent.trim();
-  };
 
   const escCSV = s => {
     if (s.includes(',') || s.includes('"') || s.includes('\n') || s.includes('\r')) {

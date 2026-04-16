@@ -1,6 +1,6 @@
 // Column visibility — show/hide columns and the visibility management panel.
 
-import { getHeaderCells, getCachedBodyRows, notify } from './utils.js';
+import { getHeaderCells, getCachedBodyRows, notify, positionPopup, addOutsideClickListener } from './utils.js';
 import { saveSession } from './session.js';
 import { shiftIndex } from './remap.js';
 
@@ -133,31 +133,8 @@ export function showColVisibilityPanel(table, clientX, clientY) {
   panel.appendChild(list);
   document.body.appendChild(panel);
 
-  // Position (viewport-aware, appears off-screen first for measurement)
-  panel.style.visibility = 'hidden';
-  panel.style.left = '-9999px';
-  panel.style.top  = '-9999px';
-
-  requestAnimationFrame(() => {
-    const pw = panel.offsetWidth;
-    const ph = panel.offsetHeight;
-    const vw = window.innerWidth;
-    const vh = window.innerHeight;
-    const x  = Math.max(8, Math.min(clientX, vw - pw - 8));
-    const y  = Math.max(8, Math.min(clientY, vh - ph - 8));
-    panel.style.left       = `${x}px`;
-    panel.style.top        = `${y}px`;
-    panel.style.visibility = '';
-  });
-
-  // Close on outside click (deferred so the opening click doesn't immediately close it)
-  const onOutsideClick = e => {
-    if (!panel.contains(e.target)) {
-      hideColVisibilityPanel();
-      document.removeEventListener('click', onOutsideClick, { capture: true });
-    }
-  };
-  setTimeout(() => document.addEventListener('click', onOutsideClick, { capture: true }), 0);
+  positionPopup(panel, clientX, clientY);
+  addOutsideClickListener(panel, hideColVisibilityPanel);
 }
 
 /** Returns an array of column indices that are currently visible. */

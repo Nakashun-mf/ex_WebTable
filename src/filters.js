@@ -1,6 +1,6 @@
 // Column filter panel (Excel-like per-column checkbox filters) and global search.
 
-import { getCachedBodyRows } from './utils.js';
+import { getCachedBodyRows, addOutsideClickListener } from './utils.js';
 import { saveSession } from './session.js';
 
 /** Apply global search + all active column filters together. */
@@ -188,12 +188,5 @@ export function showColFilterPanel(table, colIdx, th) {
     panel.style.top  = `${Math.max(8, top)}px`;
   });
 
-  // Close on outside click (defer by one tick so the opening click doesn't close it)
-  const onOutsideClick = e => {
-    if (!panel.contains(e.target)) {
-      hideColFilterPanel();
-      document.removeEventListener('click', onOutsideClick, { capture: true });
-    }
-  };
-  setTimeout(() => document.addEventListener('click', onOutsideClick, { capture: true }), 0);
+  addOutsideClickListener(panel, hideColFilterPanel);
 }
