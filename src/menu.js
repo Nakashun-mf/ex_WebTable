@@ -233,10 +233,16 @@ function fallbackCopy(text, rowCount) {
   ta.select();
   try {
     const ok = document.execCommand('copy');
-    notify(ok ? `${rowCount} 行をコピーしました ✓` : 'コピーに失敗しました。');
+    notify(ok ? `${rowCount} 行をコピーしました ✓` : copyFailMessage());
   } catch {
-    notify('コピーに失敗しました。');
+    notify(copyFailMessage());
   } finally {
     ta.remove();
   }
+}
+
+function copyFailMessage() {
+  return location.protocol === 'http:'
+    ? 'コピーに失敗しました（HTTPページではクリップボードへのアクセスが制限されています）。CSVダウンロードをご利用ください。'
+    : 'コピーに失敗しました。';
 }
