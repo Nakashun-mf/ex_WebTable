@@ -4,7 +4,6 @@
 
 /* ─── Design tokens (light mode) ─────────────────────────────────────── */
 :root {
-  --wte-tree-line:   #94a3b8;
   --wte-bg-header:   #1e293b;
   --wte-bg-header2:  #334155;
   --wte-bg-toolbar:  #f8fafc;
@@ -167,93 +166,11 @@
 .wte-tree td,
 .wte-tree th {
   padding: 8px 12px !important;
+  /* --wte-indent is set inline per-cell to override padding-left */
+  padding-left: var(--wte-indent, 12px) !important;
   border: 1px solid var(--wte-border) !important;
   color: var(--wte-text-body) !important;
   white-space: nowrap !important;
-}
-
-/* First body cell: flex container so tree-line spans can stretch full height */
-.wte-tree tbody td:first-child {
-  display: flex !important;
-  align-items: center !important;
-  padding-left: 6px !important;
-  gap: 0 !important;
-}
-
-/* ─── Tree connector line spans ──────────────────────────────────────── */
-
-/* Wrapper that holds all line-slot spans.
-   Negative margins bridge the 8px cell padding so vertical lines
-   reach the cell boundary and connect visually between adjacent rows. */
-.wte-tree-prefix {
-  display: flex !important;
-  align-self: stretch !important;
-  flex-shrink: 0 !important;
-  margin-top: -8px !important;
-  margin-bottom: -8px !important;
-}
-
-/* Each slot is 18 px wide and stretches to full cell height */
-.wte-tl-gap,
-.wte-tl-vline,
-.wte-tl-mid,
-.wte-tl-last {
-  display: block !important;
-  width: 18px !important;
-  align-self: stretch !important;
-  position: relative !important;
-  flex-shrink: 0 !important;
-}
-
-/* │  full-height vertical line (ancestor has more siblings below) */
-.wte-tl-vline::before {
-  content: '' !important;
-  position: absolute !important;
-  left: 8px !important;
-  top: 0 !important;
-  bottom: 0 !important;
-  width: 1.5px !important;
-  background: var(--wte-tree-line) !important;
-}
-
-/* ├─  T-branch: vertical line full height + horizontal arm to right */
-.wte-tl-mid::before {
-  content: '' !important;
-  position: absolute !important;
-  left: 8px !important;
-  top: 0 !important;
-  bottom: 0 !important;
-  width: 1.5px !important;
-  background: var(--wte-tree-line) !important;
-}
-.wte-tl-mid::after {
-  content: '' !important;
-  position: absolute !important;
-  left: 8px !important;
-  top: 50% !important;
-  right: -1px !important;
-  height: 1.5px !important;
-  background: var(--wte-tree-line) !important;
-}
-
-/* └─  L-branch: vertical line top-to-mid + horizontal arm to right */
-.wte-tl-last::before {
-  content: '' !important;
-  position: absolute !important;
-  left: 8px !important;
-  top: 0 !important;
-  bottom: 50% !important;
-  width: 1.5px !important;
-  background: var(--wte-tree-line) !important;
-}
-.wte-tl-last::after {
-  content: '' !important;
-  position: absolute !important;
-  left: 8px !important;
-  top: 50% !important;
-  right: -1px !important;
-  height: 1.5px !important;
-  background: var(--wte-tree-line) !important;
 }
 .wte-tree thead tr th,
 .wte-tree thead tr td {
