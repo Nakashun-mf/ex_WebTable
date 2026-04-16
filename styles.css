@@ -204,3 +204,59 @@
   width: 26px !important;
   vertical-align: middle !important;
 }
+
+/* ─── Row highlight ──────────────────────────────────────────────────── */
+.wte-rich tbody tr.wte-highlight,
+.wte-tree tbody tr.wte-highlight {
+  background: #FFF3CD !important;
+}
+.wte-rich tbody tr.wte-highlight:hover,
+.wte-tree tbody tr.wte-highlight:hover {
+  background: #FFE490 !important;
+}
+
+/* ─── Row selection ──────────────────────────────────────────────────── */
+.wte-rich tbody tr.wte-selected,
+.wte-tree tbody tr.wte-selected {
+  background: #dbeafe !important;
+}
+.wte-rich tbody tr.wte-selected:hover,
+.wte-tree tbody tr.wte-selected:hover {
+  background: #bfdbfe !important;
+}
+
+/* ─── Custom context menu ─────────────────────────────────────────────── */
+.wte-ctx-menu {
+  position: fixed;
+  z-index: 2147483646;
+  min-width: 188px;
+  padding: 4px 0;
+  background: #ffffff;
+  border: 1px solid var(--wte-border);
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, .15);
+  font: 13px/1.5 system-ui, -apple-system, sans-serif;
+  color: var(--wte-text-body);
+  user-select: none;
+}
+.wte-ctx-item {
+  padding: 7px 16px;
+  margin: 1px 4px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background .1s, color .1s;
+}
+.wte-ctx-item:hover {
+  background: var(--wte-bg-hover);
+  color: var(--wte-accent);
+}
+.wte-ctx-disabled {
+  color: var(--wte-text-muted) !important;
+  cursor: default;
+  pointer-events: none;
+}
+.wte-ctx-sep {
+  height: 1px;
+  background: var(--wte-border);
+  margin: 4px 0;
+}
