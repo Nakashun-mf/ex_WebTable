@@ -1,8 +1,14 @@
 {
   "manifest_version": 3,
   "name": "WebTable Enhancer",
+  "short_name": "WebTable",
   "version": "1.0.0",
-  "description": "Webサイト上のテーブルをリッチ表示・ツリー表示に変換するChrome拡張機能",
+  "description": "Transform HTML tables with rich sorting/filtering and collapsible tree view — right-click any table to enhance it instantly.",
+  "icons": {
+    "16":  "icons/icon16.png",
+    "48":  "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
   "permissions": ["contextMenus"],
   "background": {
     "service_worker": "background.js"
@@ -16,6 +22,10 @@
     }
   ],
   "action": {
-    "default_title": "WebTable Enhancer"
+    "default_title": "WebTable Enhancer",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png"
+    }
   }
 }

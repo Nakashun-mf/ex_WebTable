@@ -2,6 +2,29 @@
    Injected into every page. All selectors are scoped to .wte-* classes
    to minimise conflicts with existing page styles. */
 
+/* ─── Design tokens (light mode) ─────────────────────────────────────── */
+:root {
+  --wte-bg-header:   #1e293b;
+  --wte-bg-header2:  #334155;
+  --wte-bg-toolbar:  #f8fafc;
+  --wte-bg-stripe:   #f8fafc;
+  --wte-bg-hover:    #eff6ff;
+  --wte-bg-tree-hov: #f0f9ff;
+  --wte-bg-btn:      #ffffff;
+  --wte-text-header: #f1f5f9;
+  --wte-text-body:   #1e293b;
+  --wte-text-muted:  #64748b;
+  --wte-text-btn:    #475569;
+  --wte-border:      #e2e8f0;
+  --wte-border-inp:  #cbd5e1;
+  --wte-border-hdr:  #334155;
+  --wte-border-btn:  #94a3b8;
+  --wte-accent:      #6366f1;
+  --wte-accent-ring: rgba(99, 102, 241, .25);
+  --wte-shadow-wrap: 0 2px 16px rgba(0, 0, 0, .08);
+  --wte-shadow-tst:  0 4px 20px rgba(0, 0, 0, .3);
+}
+
 /* ─── Toast notification ─────────────────────────────────────────────── */
 .wte-toast {
   position: fixed;
@@ -9,11 +32,11 @@
   right: 28px;
   z-index: 2147483647;
   padding: 10px 18px;
-  background: #1e293b;
-  color: #f1f5f9;
+  background: var(--wte-bg-header);
+  color: var(--wte-text-header);
   font: 14px/1.5 system-ui, -apple-system, sans-serif;
   border-radius: 8px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, .3);
+  box-shadow: var(--wte-shadow-tst);
   cursor: pointer;
   white-space: pre-line;
   animation: wte-in .18s ease;
@@ -30,8 +53,8 @@
   max-width: 100%;
   border-radius: 10px;
   overflow: hidden;
-  border: 1px solid #e2e8f0;
-  box-shadow: 0 2px 16px rgba(0, 0, 0, .08);
+  border: 1px solid var(--wte-border);
+  box-shadow: var(--wte-shadow-wrap);
   font-family: system-ui, -apple-system, sans-serif;
 }
 
@@ -41,26 +64,28 @@
   align-items: center;
   gap: 12px;
   padding: 10px 14px;
-  background: #f8fafc;
-  border-bottom: 1px solid #e2e8f0;
+  background: var(--wte-bg-toolbar);
+  border-bottom: 1px solid var(--wte-border);
 }
 .wte-search {
   flex: 1;
   min-width: 0;
   padding: 6px 10px;
-  border: 1px solid #cbd5e1;
+  border: 1px solid var(--wte-border-inp);
   border-radius: 6px;
   font: 14px system-ui, sans-serif;
+  background: var(--wte-bg-btn);
+  color: var(--wte-text-body);
   outline: none;
   transition: border-color .15s, box-shadow .15s;
 }
 .wte-search:focus {
-  border-color: #6366f1;
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, .15);
+  border-color: var(--wte-accent);
+  box-shadow: 0 0 0 3px var(--wte-accent-ring);
 }
 .wte-counter {
   font-size: 12px;
-  color: #64748b;
+  color: var(--wte-text-muted);
   white-space: nowrap;
   flex-shrink: 0;
 }
@@ -70,13 +95,13 @@
   border-collapse: collapse !important;
   width: 100% !important;
   font: 14px/1.5 system-ui, -apple-system, sans-serif !important;
-  color: #1e293b !important;
+  color: var(--wte-text-body) !important;
 }
 
 /* Header cells (th OR td promoted to header) */
 .wte-rich .wte-th {
-  background: #1e293b !important;
-  color: #f1f5f9 !important;
+  background: var(--wte-bg-header) !important;
+  color: var(--wte-text-header) !important;
   padding: 10px 14px !important;
   text-align: left !important;
   white-space: nowrap !important;
@@ -85,7 +110,11 @@
   border: none !important;
 }
 .wte-rich .wte-th:hover {
-  background: #334155 !important;
+  background: var(--wte-bg-header2) !important;
+}
+.wte-rich .wte-th:focus-visible {
+  outline: 2px solid var(--wte-accent) !important;
+  outline-offset: -2px !important;
 }
 
 /* Sort arrow indicator */
@@ -104,17 +133,17 @@
 .wte-rich tbody th {
   padding: 9px 14px !important;
   border: none !important;
-  border-bottom: 1px solid #e2e8f0 !important;
+  border-bottom: 1px solid var(--wte-border) !important;
 }
 .wte-rich tbody tr:last-child td,
 .wte-rich tbody tr:last-child th {
   border-bottom: none !important;
 }
-.wte-rich tbody tr:nth-child(even) {
-  background: #f8fafc !important;
+.wte-rich tbody tr.wte-stripe {
+  background: var(--wte-bg-stripe) !important;
 }
 .wte-rich tbody tr:hover {
-  background: #eff6ff !important;
+  background: var(--wte-bg-hover) !important;
 }
 
 /* ─── Tree table ─────────────────────────────────────────────────────── */
@@ -125,16 +154,17 @@
 .wte-tree td,
 .wte-tree th {
   padding: 8px 12px !important;
-  border: 1px solid #e2e8f0 !important;
+  border: 1px solid var(--wte-border) !important;
+  color: var(--wte-text-body) !important;
 }
 .wte-tree thead tr th,
 .wte-tree thead tr td {
-  background: #1e293b !important;
-  color: #f1f5f9 !important;
-  border-color: #334155 !important;
+  background: var(--wte-bg-header) !important;
+  color: var(--wte-text-header) !important;
+  border-color: var(--wte-border-hdr) !important;
 }
 .wte-tree tbody tr:hover {
-  background: #f0f9ff !important;
+  background: var(--wte-bg-tree-hov) !important;
 }
 
 /* Toggle button (+/−) */
@@ -146,10 +176,10 @@
   height: 20px !important;
   padding: 0 !important;
   margin-right: 6px !important;
-  border: 1px solid #94a3b8 !important;
+  border: 1px solid var(--wte-border-btn) !important;
   border-radius: 4px !important;
-  background: #ffffff !important;
-  color: #475569 !important;
+  background: var(--wte-bg-btn) !important;
+  color: var(--wte-text-btn) !important;
   font-size: 14px !important;
   font-weight: bold !important;
   line-height: 1 !important;
@@ -159,9 +189,13 @@
   transition: background .12s, color .12s, border-color .12s !important;
 }
 .wte-btn:hover {
-  background: #6366f1 !important;
+  background: var(--wte-accent) !important;
   color: #ffffff !important;
-  border-color: #6366f1 !important;
+  border-color: var(--wte-accent) !important;
+}
+.wte-btn:focus-visible {
+  outline: 2px solid var(--wte-accent) !important;
+  outline-offset: 1px !important;
 }
 
 /* Leaf-node spacer (keeps text aligned with toggle-button rows) */

@@ -1,0 +1,79 @@
+name: Package Extension
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version string (e.g. 1.0.0). Leave blank to use manifest version."
+        required: false
+        default: ""
+
+jobs:
+  build:
+    name: Build & Release ZIP
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # ── Resolve version ─────────────────────────────────────────────────────
+      - name: Resolve version
+        id: ver
+        run: |
+          if [[ "${{ github.event_name }}" == "push" && "${{ github.ref_type }}" == "tag" ]]; then
+            VERSION="${GITHUB_REF_NAME#v}"
+          elif [[ -n "${{ inputs.version }}" ]]; then
+            VERSION="${{ inputs.version }}"
+          else
+            VERSION=$(node -pe "require('./manifest.json').version")
+          fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Packaging version: $VERSION"
+
+      # ── Generate icons ───────────────────────────────────────────────────────
+      - name: Generate icons
+        run: node generate-icons.js
+
+      # ── Build ZIP (extension files only) ────────────────────────────────────
+      - name: Create ZIP
+        run: |
+          ZIP_NAME="webtable-enhancer-v${{ steps.ver.outputs.version }}.zip"
+          zip -r "$ZIP_NAME" \
+            manifest.json \
+            background.js \
+            content.js \
+            styles.css \
+            icons/
+          echo "zip_name=$ZIP_NAME" >> "$GITHUB_ENV"
+          echo "Created: $ZIP_NAME"
+          unzip -l "$ZIP_NAME"
+
+      # ── Upload as workflow artifact ──────────────────────────────────────────
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: webtable-enhancer-v${{ steps.ver.outputs.version }}
+          path: ${{ env.zip_name }}
+          if-no-files-found: error
+
+      # ── Create GitHub Release (tag pushes only) ──────────────────────────────
+      - name: Create GitHub Release
+        if: github.event_name == 'push' && github.ref_type == 'tag'
+        uses: softprops/action-gh-release@v2
+        with:
+          name: "WebTable Enhancer v${{ steps.ver.outputs.version }}"
+          body: |
+            ## WebTable Enhancer v${{ steps.ver.outputs.version }}
+
+            ### Installation
+            Download the ZIP below and upload it to the [Chrome Developer Dashboard](https://chrome.google.com/webstore/devconsole/).
+
+            ### What's new
+            See [CHANGELOG](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md) for details.
+          files: ${{ env.zip_name }}
+          draft: false
+          prerelease: false
