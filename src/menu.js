@@ -123,6 +123,18 @@ export function showMenu(clientX, clientY, table, row, th = null) {
       // Expand wrapper to full width in wrap mode so table can fill it
       const wrapEl = table.closest('.wte-wrap, .wte-tree-wrap');
       if (wrapEl) wrapEl.style.width = enabling ? '100%' : '';
+      // Clear col pixel-widths in wrap mode so table-layout:auto can honour width:100%
+      if (enabling) {
+        if (table._wteCols) {
+          table._wteWrapColWidths = table._wteCols.map(c => c.style.width);
+          table._wteCols.forEach(c => { c.style.width = ''; });
+        }
+      } else {
+        if (table._wteWrapColWidths && table._wteCols) {
+          table._wteCols.forEach((c, i) => { c.style.width = table._wteWrapColWidths[i] || ''; });
+          table._wteWrapColWidths = null;
+        }
+      }
       hideMenu();
     }
   ));

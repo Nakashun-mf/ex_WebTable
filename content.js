@@ -1226,6 +1226,21 @@
         table.classList.toggle("wte-wrap-mode");
         const wrapEl = table.closest(".wte-wrap, .wte-tree-wrap");
         if (wrapEl) wrapEl.style.width = enabling ? "100%" : "";
+        if (enabling) {
+          if (table._wteCols) {
+            table._wteWrapColWidths = table._wteCols.map((c) => c.style.width);
+            table._wteCols.forEach((c) => {
+              c.style.width = "";
+            });
+          }
+        } else {
+          if (table._wteWrapColWidths && table._wteCols) {
+            table._wteCols.forEach((c, i) => {
+              c.style.width = table._wteWrapColWidths[i] || "";
+            });
+            table._wteWrapColWidths = null;
+          }
+        }
         hideMenu();
       }
     ));

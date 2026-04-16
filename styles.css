@@ -225,7 +225,7 @@
 /* Force table to fit within the wrapper so text can wrap */
 .wte-rich.wte-wrap-mode,
 .wte-tree.wte-wrap-mode {
-  table-layout: fixed !important;
+  table-layout: auto !important;
   width: 100% !important;
 }
 .wte-rich.wte-wrap-mode td,
