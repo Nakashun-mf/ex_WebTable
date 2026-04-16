@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "WebTable Enhancer",
   "short_name": "WebTable",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "Transform HTML tables with rich sorting/filtering and collapsible tree view — right-click any table to enhance it instantly.",
   "icons": {
     "16": "icons/icon16.png",
