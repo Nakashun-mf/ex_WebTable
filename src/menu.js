@@ -26,7 +26,13 @@ document.addEventListener('keydown', e => {
     document.querySelectorAll('.wte-rich, .wte-tree').forEach(t => clearSelection(t));
   }
 });
-window.addEventListener('scroll', () => { hideMenu(); hideColFilterPanel(); hideColVisibilityPanel(); }, { passive: true, capture: true });
+window.addEventListener('scroll', e => {
+  const filterPanel = document.querySelector('.wte-col-filter-panel');
+  const visPanel    = document.querySelector('.wte-col-vis-panel');
+  hideMenu();
+  if (!filterPanel || !filterPanel.contains(e.target)) hideColFilterPanel();
+  if (!visPanel    || !visPanel.contains(e.target))    hideColVisibilityPanel();
+}, { passive: true, capture: true });
 
 function getOrCreateMenu() {
   let menu = document.getElementById('wte-ctx-menu');
