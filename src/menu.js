@@ -4,7 +4,7 @@ import { getHeaderCells, notify, cleanCell, positionPopup } from './utils.js';
 import { hideColFilterPanel } from './filters.js';
 import {
   getThColIdx, hideColumn, hideColVisibilityPanel,
-  showColVisibilityPanel
+  showColVisibilityPanel, getVisibleColIndices
 } from './colvis.js';
 import { exportTableAsCSV } from './csv.js';
 import { transformToRich } from './rich.js';
@@ -180,9 +180,8 @@ function copyRowsAsTSV(rows, includeHeader, table) {
   const visibleRows = rows.filter(r => !r.hidden);
   if (!visibleRows.length) { notify('コピーする行がありません。'); return; }
 
-  const hidden      = table._wteHiddenCols || new Set();
-  const headers     = getHeaderCells(table);
-  const visColIdxs  = Array.from({ length: headers.length }, (_, i) => i).filter(i => !hidden.has(i));
+  const headers    = getHeaderCells(table);
+  const visColIdxs = getVisibleColIndices(table);
 
   const esc  = s => s.replace(/[\t\n]/g, ' ');
   const text = cell => esc(cleanCell(cell));
