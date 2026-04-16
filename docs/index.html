@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WebTable Enhancer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:       #F1F4F7;
+      --surface:  #ffffff;
+      --border:   #DEE3E9;
+      --text:     #1C2B33;
+      --muted:    #5D6C7B;
+      --accent:   #0064E0;
+      --accent-h: #0143B5;
+      --tag-bg:   #E8F3FF;
+      --tag-text: #0064E0;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg:       #1C1E21;
+        --surface:  #2d3135;
+        --border:   #3a3e44;
+        --text:     #E3E8EE;
+        --muted:    #9BA8B5;
+        --accent:   #4A90E2;
+        --accent-h: #6BADF7;
+        --tag-bg:   #1a2e4a;
+        --tag-text: #6BADF7;
+      }
+    }
+
+    body {
+      font-family: "Montserrat", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.7;
+      padding: 2rem 1rem 4rem;
+    }
+
+    .container {
+      max-width: 760px;
+      margin: 0 auto;
+    }
+
+    /* ── Hero ── */
+    .hero {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 3rem 3rem 2.5rem;
+      margin-bottom: 2rem;
+      text-align: center;
+    }
+    @media (max-width: 640px) {
+      .hero { padding: 2rem 1.25rem; }
+    }
+
+    .logo {
+      display: inline-flex;
+      align-items: center;
+      gap: .75rem;
+      text-decoration: none;
+      margin-bottom: 1.5rem;
+    }
+    .logo svg { width: 52px; height: 52px; flex-shrink: 0; }
+    .logo-name {
+      font-size: 1.5rem;
+      font-weight: 800;
+      color: var(--accent);
+      letter-spacing: -.5px;
+    }
+
+    .hero h1 {
+      font-size: 2rem;
+      font-weight: 800;
+      letter-spacing: -.5px;
+      margin-bottom: .6rem;
+    }
+    @media (max-width: 480px) { .hero h1 { font-size: 1.5rem; } }
+
+    .hero p {
+      color: var(--muted);
+      font-size: 1.05rem;
+      max-width: 520px;
+      margin: 0 auto 2rem;
+    }
+
+    .btn-group {
+      display: flex;
+      gap: .75rem;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: .4rem;
+      padding: .6rem 1.6rem;
+      border-radius: 100px;
+      font-size: .95rem;
+      font-weight: 700;
+      text-decoration: none;
+      transition: background .15s, color .15s, border-color .15s;
+    }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-primary:hover { background: var(--accent-h); }
+    .btn-ghost {
+      background: transparent;
+      color: var(--accent);
+      border: 1.5px solid var(--accent);
+    }
+    .btn-ghost:hover { background: var(--tag-bg); }
+
+    /* ── Feature grid ── */
+    .section {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 2rem 2.5rem;
+      margin-bottom: 1.5rem;
+    }
+    @media (max-width: 640px) { .section { padding: 1.5rem 1.25rem; } }
+
+    .section-title {
+      font-size: 1.1rem;
+      font-weight: 700;
+      margin-bottom: 1.25rem;
+      color: var(--accent);
+    }
+
+    .feature-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+      gap: .75rem;
+    }
+    .feature-item {
+      display: flex;
+      align-items: flex-start;
+      gap: .55rem;
+      font-size: .92rem;
+    }
+    .feature-item .icon {
+      font-size: 1rem;
+      line-height: 1.6;
+      flex-shrink: 0;
+    }
+
+    /* ── Tags ── */
+    .tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: .5rem;
+      margin-top: 1rem;
+    }
+    .tag {
+      background: var(--tag-bg);
+      color: var(--tag-text);
+      border-radius: 100px;
+      padding: .2rem .65rem;
+      font-size: .8rem;
+      font-weight: 600;
+    }
+
+    /* ── Install steps ── */
+    .steps { counter-reset: step; }
+    .step {
+      counter-increment: step;
+      display: flex;
+      align-items: flex-start;
+      gap: 1rem;
+      padding: .6rem 0;
+      font-size: .95rem;
+    }
+    .step + .step { border-top: 1px solid var(--border); }
+    .step::before {
+      content: counter(step);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: var(--accent);
+      color: #fff;
+      font-size: .8rem;
+      font-weight: 700;
+      flex-shrink: 0;
+      margin-top: .1rem;
+    }
+
+    code {
+      background: color-mix(in srgb, var(--accent) 10%, transparent);
+      color: var(--accent);
+      border-radius: 4px;
+      padding: .1em .4em;
+      font-size: .88em;
+      font-family: ui-monospace, "Cascadia Code", monospace;
+    }
+
+    /* ── Nav footer ── */
+    .nav-footer {
+      display: flex;
+      gap: 1rem;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-top: 2.5rem;
+      font-size: .9rem;
+    }
+    .nav-footer a { color: var(--accent); text-decoration: none; }
+    .nav-footer a:hover { color: var(--accent-h); text-decoration: underline; }
+    .nav-footer span { color: var(--border); }
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <!-- Hero -->
+  <div class="hero">
+    <a class="logo" href="https://github.com/nakashun-mf/ex_webtable">
+      <svg viewBox="0 0 52 52" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <rect width="52" height="52" rx="10" fill="#0064E0"/>
+        <rect x="7"  y="7"  width="38" height="38" rx="3" stroke="white" stroke-width="2.5"/>
+        <line x1="7"  y1="19" x2="45" y2="19" stroke="white" stroke-width="2.5"/>
+        <line x1="25" y1="7"  x2="25" y2="45" stroke="white" stroke-width="2.5"/>
+        <line x1="7"  y1="32" x2="45" y2="32" stroke="white" stroke-width="1.8"/>
+      </svg>
+      <span class="logo-name">WebTable Enhancer</span>
+    </a>
+
+    <h1>テーブルを、もっと使いやすく。</h1>
+    <p>Webサイト上の HTML テーブルを右クリック一発でリッチな表示に変換する Chrome 拡張機能です。</p>
+
+    <div class="btn-group">
+      <a class="btn btn-primary" href="https://github.com/nakashun-mf/ex_webtable">
+        &#128279; GitHub で見る
+      </a>
+      <a class="btn btn-ghost" href="privacy-policy.html">
+        プライバシーポリシー
+      </a>
+    </div>
+  </div>
+
+  <!-- Features -->
+  <div class="section">
+    <div class="section-title">&#10024; リッチ表示</div>
+    <div class="feature-grid">
+      <div class="feature-item"><span class="icon">&#128269;</span><span>グローバル検索フィルター</span></div>
+      <div class="feature-item"><span class="icon">&#8645;</span><span>列ソート（数値・日付・テキスト）</span></div>
+      <div class="feature-item"><span class="icon">&#9745;</span><span>列フィルター（Excel ライク）</span></div>
+      <div class="feature-item"><span class="icon">&#8596;</span><span>列リサイズ・列並替</span></div>
+      <div class="feature-item"><span class="icon">&#128065;</span><span>列の表示 / 非表示</span></div>
+      <div class="feature-item"><span class="icon">&#128190;</span><span>CSV エクスポート</span></div>
+      <div class="feature-item"><span class="icon">&#9989;</span><span>行選択・コピー（Shift / Ctrl）</span></div>
+      <div class="feature-item"><span class="icon">&#127775;</span><span>行ハイライト</span></div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">&#127795; ツリー表示</div>
+    <div class="feature-grid">
+      <div class="feature-item"><span class="icon">&#128195;</span><span>Level 列から階層を自動検出</span></div>
+      <div class="feature-item"><span class="icon">&#10133;&#10134;</span><span>展開 / 折りたたみ</span></div>
+      <div class="feature-item"><span class="icon">&#128196;</span><span>全展開・全折畳み</span></div>
+      <div class="feature-item"><span class="icon">&#127959;</span><span>レベル指定展開</span></div>
+    </div>
+    <div class="tags">
+      <span class="tag">Level列</span>
+      <span class="tag">レベル列</span>
+      <span class="tag">階層列</span>
+      <span class="tag">アンダースコアインデント</span>
+    </div>
+  </div>
+
+  <!-- Install -->
+  <div class="section">
+    <div class="section-title">&#128640; インストール（開発者向け）</div>
+    <div class="steps">
+      <div class="step">リポジトリをクローン：<code>git clone https://github.com/nakashun-mf/ex_webtable.git</code></div>
+      <div class="step"><code>npm install &amp;&amp; npm run build</code> でビルド</div>
+      <div class="step">Chrome で <code>chrome://extensions</code> を開く</div>
+      <div class="step">「デベロッパーモード」を ON にして「パッケージ化されていない拡張機能を読み込む」</div>
+      <div class="step">クローンしたフォルダを選択して完了</div>
+    </div>
+  </div>
+
+</div>
+
+<nav class="nav-footer">
+  <a href="https://github.com/nakashun-mf/ex_webtable">GitHub</a>
+  <span>|</span>
+  <a href="privacy-policy.html">プライバシーポリシー</a>
+  <span>|</span>
+  <a href="https://github.com/nakashun-mf/ex_webtable/blob/main/docs/DESIGN.md">設計書</a>
+</nav>
+
+</body>
+</html>

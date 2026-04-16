@@ -4,25 +4,26 @@
 
 /* ─── Design tokens (light mode) ─────────────────────────────────────── */
 :root {
-  --wte-bg-header:   #1e293b;
-  --wte-bg-header2:  #334155;
-  --wte-bg-toolbar:  #f8fafc;
-  --wte-bg-stripe:   #f8fafc;
-  --wte-bg-hover:    #eff6ff;
-  --wte-bg-tree-hov: #f0f9ff;
+  --wte-bg-header:   #1C1E21;   /* Near Black */
+  --wte-bg-header2:  #2d3135;
+  --wte-bg-toolbar:  #F1F4F7;   /* Soft Gray */
+  --wte-bg-stripe:   #F7F8FA;   /* Warm Gray */
+  --wte-bg-hover:    #E8F3FF;   /* Baby Blue */
+  --wte-bg-tree-hov: #E8F3FF;
   --wte-bg-btn:      #ffffff;
-  --wte-text-header: #f1f5f9;
-  --wte-text-body:   #1e293b;
-  --wte-text-muted:  #64748b;
-  --wte-text-btn:    #475569;
-  --wte-border:      #e2e8f0;
-  --wte-border-inp:  #cbd5e1;
-  --wte-border-hdr:  #334155;
-  --wte-border-btn:  #94a3b8;
-  --wte-accent:      #6366f1;
-  --wte-accent-ring: rgba(99, 102, 241, .25);
-  --wte-shadow-wrap: 0 2px 16px rgba(0, 0, 0, .08);
-  --wte-shadow-tst:  0 4px 20px rgba(0, 0, 0, .3);
+  --wte-text-header: #ffffff;
+  --wte-text-body:   #1C2B33;   /* Dark Charcoal */
+  --wte-text-muted:  #5D6C7B;   /* Slate Gray */
+  --wte-text-btn:    #5D6C7B;
+  --wte-border:      #DEE3E9;   /* Divider Gray */
+  --wte-border-inp:  #CED0D4;   /* Divider */
+  --wte-border-hdr:  #2d3135;
+  --wte-border-btn:  #CBD2D9;   /* CTA Gray Border */
+  --wte-accent:      #0064E0;   /* Meta Blue */
+  --wte-accent-h:    #0143B5;   /* Meta Blue Hover */
+  --wte-accent-ring: rgba(0, 100, 224, .25);
+  --wte-shadow-wrap: 0 2px 4px 0 rgba(0,0,0,.10), 0 12px 28px 0 rgba(0,0,0,.12);
+  --wte-shadow-tst:  0 2px 4px 0 rgba(0,0,0,.10), 0 12px 28px 0 rgba(0,0,0,.20);
 }
 
 /* ─── Toast notification ─────────────────────────────────────────────── */
@@ -35,7 +36,7 @@
   background: var(--wte-bg-header);
   color: var(--wte-text-header);
   font: 14px/1.5 system-ui, -apple-system, sans-serif;
-  border-radius: 8px;
+  border-radius: 100px;
   box-shadow: var(--wte-shadow-tst);
   cursor: pointer;
   white-space: pre-line;
@@ -52,7 +53,7 @@
   display: block;
   width: fit-content;
   max-width: 100%;
-  border-radius: 10px;
+  border-radius: 20px;
   overflow-x: auto;
   border: 1px solid var(--wte-border);
   box-shadow: var(--wte-shadow-wrap);
@@ -82,7 +83,7 @@
   min-width: 0;
   padding: 6px 10px;
   border: 1px solid var(--wte-border-inp);
-  border-radius: 6px;
+  border-radius: 8px;
   font: 14px system-ui, sans-serif;
   background: var(--wte-bg-btn);
   color: var(--wte-text-body);
@@ -192,7 +193,7 @@
   padding: 0 !important;
   margin-right: 6px !important;
   border: 1px solid var(--wte-border-btn) !important;
-  border-radius: 4px !important;
+  border-radius: 8px !important;
   background: var(--wte-bg-btn) !important;
   color: var(--wte-text-btn) !important;
   font-size: 14px !important;
@@ -258,11 +259,11 @@
 /* ─── Row selection ──────────────────────────────────────────────────── */
 .wte-rich tbody tr.wte-selected,
 .wte-tree tbody tr.wte-selected {
-  background: #dbeafe !important;
+  background: rgba(0, 100, 224, .10) !important;
 }
 .wte-rich tbody tr.wte-selected:hover,
 .wte-tree tbody tr.wte-selected:hover {
-  background: #bfdbfe !important;
+  background: rgba(0, 100, 224, .18) !important;
 }
 
 /* ─── Column resize handle ───────────────────────────────────────────── */
@@ -291,8 +292,8 @@
   padding: 4px 0;
   background: #ffffff;
   border: 1px solid var(--wte-border);
-  border-radius: 8px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, .15);
+  border-radius: 20px;
+  box-shadow: 0 2px 4px 0 rgba(0,0,0,.10), 0 12px 28px 0 rgba(0,0,0,.15);
   font: 13px/1.5 system-ui, -apple-system, sans-serif;
   color: var(--wte-text-body);
   user-select: none;
@@ -300,7 +301,7 @@
 .wte-ctx-item {
   padding: 7px 16px;
   margin: 1px 4px;
-  border-radius: 4px;
+  border-radius: 8px;
   cursor: pointer;
   transition: background .1s, color .1s;
 }
@@ -369,8 +370,8 @@
   width: 220px !important;
   background: #ffffff !important;
   border: 1px solid var(--wte-border) !important;
-  border-radius: 8px !important;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, .15) !important;
+  border-radius: 20px !important;
+  box-shadow: 0 2px 4px 0 rgba(0,0,0,.10), 0 12px 28px 0 rgba(0,0,0,.15) !important;
   font: 13px/1.5 system-ui, -apple-system, sans-serif !important;
   color: var(--wte-text-body) !important;
   overflow: hidden !important;
@@ -403,7 +404,7 @@
   flex: 1 !important;
   padding: 3px 0 !important;
   border: 1px solid var(--wte-border-btn) !important;
-  border-radius: 3px !important;
+  border-radius: 100px !important;
   background: transparent !important;
   color: var(--wte-text-muted) !important;
   font-size: 11px !important;
@@ -451,7 +452,7 @@
   flex: 1 !important;
   padding: 5px 0 !important;
   border: none !important;
-  border-radius: 4px !important;
+  border-radius: 100px !important;
   background: var(--wte-accent) !important;
   color: #ffffff !important;
   font-size: 12px !important;
@@ -459,14 +460,14 @@
   transition: background .12s !important;
 }
 .wte-filter-apply:hover {
-  background: #4f46e5 !important;
+  background: var(--wte-accent-h) !important;
 }
 
 .wte-filter-clear {
   flex: 1 !important;
   padding: 5px 0 !important;
   border: 1px solid var(--wte-border-btn) !important;
-  border-radius: 4px !important;
+  border-radius: 100px !important;
   background: transparent !important;
   color: var(--wte-text-muted) !important;
   font-size: 12px !important;
@@ -490,8 +491,8 @@
   width: 220px !important;
   background: #ffffff !important;
   border: 1px solid var(--wte-border) !important;
-  border-radius: 8px !important;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, .15) !important;
+  border-radius: 20px !important;
+  box-shadow: 0 2px 4px 0 rgba(0,0,0,.10), 0 12px 28px 0 rgba(0,0,0,.15) !important;
   font: 13px/1.5 system-ui, -apple-system, sans-serif !important;
   color: var(--wte-text-body) !important;
   overflow: hidden !important;
