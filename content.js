@@ -8,6 +8,20 @@ let lastContextTarget = null;
 
 document.addEventListener('contextmenu', e => {
   lastContextTarget = e.target;
+
+  // Show custom in-page menu for already-converted tables
+  const wrap  = e.target.closest('.wte-wrap');
+  let ctxTable;
+  if (wrap) {
+    ctxTable = wrap.querySelector(':scope > .wte-rich, :scope > .wte-tree');
+  } else {
+    const t  = findTable(e.target);
+    ctxTable = (t && isTransformed(t)) ? t : null;
+  }
+  if (ctxTable) {
+    e.preventDefault();
+    showMenu(e.clientX, e.clientY, ctxTable, e.target.closest('tbody tr') || null);
+  }
 });
 
 chrome.runtime.onMessage.addListener(msg => {
@@ -179,6 +193,7 @@ function transformToRich(table) {
 
   refreshCount();
   applyStripes();
+  setupTableInteraction(table);
   notify('リッチ表示に変換しました ✓');
 }
 
@@ -366,6 +381,7 @@ function transformToTree(table) {
     }
   });
 
+  setupTableInteraction(table);
   notify('ツリー表示に変換しました ✓');
 }
 
@@ -413,6 +429,195 @@ function resetTable(table) {
   delete table.dataset.wteStyle;
   delete table._wteOriginalOrder;
   delete table._wteApplyStripes;
+  delete table._wteInteractionSetup;
+  delete table._wteLastClickedRow;
 
   notify('元の表示に戻しました ✓');
+}
+
+/* ─── Custom Context Menu ───────────────────────────────────────────────── */
+
+// Close menu on outside click / Escape / scroll
+document.addEventListener('click', e => {
+  const menu = document.getElementById('wte-ctx-menu');
+  if (menu && !menu.hidden && !menu.contains(e.target)) hideMenu();
+});
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') hideMenu();
+});
+window.addEventListener('scroll', () => hideMenu(), { passive: true, capture: true });
+
+function getOrCreateMenu() {
+  let menu = document.getElementById('wte-ctx-menu');
+  if (!menu) {
+    menu = document.createElement('div');
+    menu.id        = 'wte-ctx-menu';
+    menu.className = 'wte-ctx-menu';
+    menu.hidden    = true;
+    document.body.appendChild(menu);
+  }
+  return menu;
+}
+
+function hideMenu() {
+  const menu = document.getElementById('wte-ctx-menu');
+  if (menu) menu.hidden = true;
+}
+
+function showMenu(clientX, clientY, table, row) {
+  const selectedRows = getSelectedRows(table);
+
+  // Determine which rows actions should apply to
+  let targets;
+  if (row) {
+    targets = selectedRows.has(row) ? selectedRows : new Set([row]);
+  } else {
+    targets = selectedRows;
+  }
+
+  const hasTargets = targets.size > 0;
+  const allHighlit = hasTargets && [...targets].every(r => r.classList.contains('wte-highlight'));
+  const isRich     = table.classList.contains('wte-rich');
+
+  const menu = getOrCreateMenu();
+  menu.innerHTML = '';
+
+  // ① Highlight
+  menu.appendChild(makeMenuItem(
+    allHighlit ? 'ハイライトを解除' : '行をハイライト',
+    () => { targets.forEach(r => r.classList.toggle('wte-highlight', !allHighlit)); hideMenu(); },
+    !hasTargets
+  ));
+
+  menu.appendChild(makeSep());
+
+  // ② Copy
+  menu.appendChild(makeMenuItem('選択した行をコピー', () => {
+    copyRowsAsTSV([...targets], false, table); hideMenu();
+  }, !hasTargets));
+  menu.appendChild(makeMenuItem('ヘッダーと選択した行をコピー', () => {
+    copyRowsAsTSV([...targets], true, table); hideMenu();
+  }, !hasTargets));
+
+  menu.appendChild(makeSep());
+
+  // ③ Switch view
+  menu.appendChild(makeMenuItem(
+    isRich ? 'ツリー表示に変換' : 'リッチ表示に変換',
+    () => {
+      resetTable(table);
+      if (isRich) transformToTree(table);
+      else        transformToRich(table);
+      hideMenu();
+    }
+  ));
+
+  menu.appendChild(makeSep());
+
+  // Reset
+  menu.appendChild(makeMenuItem('元に戻す', () => { resetTable(table); hideMenu(); }));
+
+  // Measure off-screen then position
+  menu.style.visibility = 'hidden';
+  menu.style.left = '-9999px';
+  menu.style.top  = '-9999px';
+  menu.hidden = false;
+
+  const mw = menu.offsetWidth;
+  const mh = menu.offsetHeight;
+  const vw = window.innerWidth;
+  const vh = window.innerHeight;
+  const x  = Math.max(8, Math.min(clientX, vw - mw - 8));
+  const y  = Math.max(8, Math.min(clientY, vh - mh - 8));
+
+  menu.style.left       = `${x}px`;
+  menu.style.top        = `${y}px`;
+  menu.style.visibility = '';
+}
+
+function makeMenuItem(label, onClick, disabled = false) {
+  const el = document.createElement('div');
+  el.className = disabled ? 'wte-ctx-item wte-ctx-disabled' : 'wte-ctx-item';
+  el.textContent = label;
+  if (!disabled) el.addEventListener('click', e => { e.stopPropagation(); onClick(); });
+  return el;
+}
+
+function makeSep() {
+  const el = document.createElement('div');
+  el.className = 'wte-ctx-sep';
+  return el;
+}
+
+function getSelectedRows(table) {
+  return new Set(table.querySelectorAll('tbody tr.wte-selected'));
+}
+
+function copyRowsAsTSV(rows, includeHeader, table) {
+  const visibleRows = rows.filter(r => !r.hidden);
+  if (!visibleRows.length) { notify('コピーする行がありません。'); return; }
+
+  const esc  = s => s.replace(/[\t\n]/g, ' ');
+  const text = cell => {
+    const c = cell.cloneNode(true);
+    c.querySelectorAll('.wte-arrow, .wte-btn, .wte-spc').forEach(n => n.remove());
+    return esc(c.textContent.trim());
+  };
+
+  const lines = [];
+  if (includeHeader) lines.push(getHeaderCells(table).map(text).join('\t'));
+  visibleRows.forEach(r => lines.push(Array.from(r.cells).map(text).join('\t')));
+
+  navigator.clipboard.writeText(lines.join('\n'))
+    .then(() => notify(`${visibleRows.length} 行をコピーしました ✓`))
+    .catch(() => notify('コピーに失敗しました。'));
+}
+
+/* ─── Row Interaction (selection & highlight) ──────────────────────────── */
+
+function setupTableInteraction(table) {
+  if (table._wteInteractionSetup) return;
+  table._wteInteractionSetup = true;
+
+  // Click → row selection (single / Shift-range / Ctrl-toggle)
+  table.addEventListener('click', e => {
+    if (!isTransformed(table)) return;
+    if (e.target.classList.contains('wte-btn')) return;
+    const row = e.target.closest('tbody tr');
+    if (!row || row.hidden) return;
+
+    if (e.shiftKey && table._wteLastClickedRow) {
+      rangeSelect(table, row);
+    } else if (e.ctrlKey || e.metaKey) {
+      row.classList.toggle('wte-selected');
+      table._wteLastClickedRow = row;
+    } else {
+      clearSelection(table);
+      row.classList.add('wte-selected');
+      table._wteLastClickedRow = row;
+    }
+  });
+
+  // Double-click → toggle highlight
+  table.addEventListener('dblclick', e => {
+    if (!isTransformed(table)) return;
+    if (e.target.classList.contains('wte-btn')) return;
+    const row = e.target.closest('tbody tr');
+    if (!row || row.hidden) return;
+    row.classList.toggle('wte-highlight');
+  });
+}
+
+function clearSelection(table) {
+  table.querySelectorAll('tbody tr.wte-selected').forEach(r => r.classList.remove('wte-selected'));
+}
+
+function rangeSelect(table, targetRow) {
+  const rows     = getBodyRows(table).filter(r => !r.hidden);
+  const startIdx = rows.indexOf(table._wteLastClickedRow);
+  const endIdx   = rows.indexOf(targetRow);
+  if (startIdx === -1 || endIdx === -1) return;
+  clearSelection(table);
+  const [from, to] = startIdx <= endIdx ? [startIdx, endIdx] : [endIdx, startIdx];
+  rows.slice(from, to + 1).forEach(r => r.classList.add('wte-selected'));
 }
