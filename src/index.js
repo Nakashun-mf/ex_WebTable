@@ -7,6 +7,10 @@ import { transformToRich } from './rich.js';
 import { transformToTree } from './tree.js';
 import { resetTable } from './reset.js';
 import { showMenu } from './menu.js';
+import { restoreAllSessions } from './session.js';
+
+// Restore any previously saved table state when the page loads.
+restoreAllSessions();
 
 let lastContextTarget = null;
 

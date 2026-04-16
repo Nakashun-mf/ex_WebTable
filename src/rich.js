@@ -4,6 +4,7 @@ import {
   getHeaderCells, getBodyRows, getCachedBodyRows, ensureStructure,
   isTransformed, saveSnapshot, notify
 } from './utils.js';
+import { saveSession } from './session.js';
 import { sortBy } from './sort.js';
 import { applyAllFilters, showColFilterPanel } from './filters.js';
 import { addColResizeHandles } from './resize.js';
@@ -125,7 +126,7 @@ export function transformToRich(table) {
     clearTimeout(_searchTimer);
     _searchTimer = setTimeout(() => {
       table._wteSearchQuery = search.value;
-      applyAllFilters(table);
+      applyAllFilters(table); // applyAllFilters calls saveSession internally
     }, 150);
   });
 
@@ -134,5 +135,6 @@ export function transformToRich(table) {
   setupTableInteraction(table);
   addColResizeHandles(table);
   addColReorderHandles(table);
+  saveSession(table);
   notify('リッチ表示に変換しました ✓');
 }

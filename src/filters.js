@@ -1,6 +1,7 @@
 // Column filter panel (Excel-like per-column checkbox filters) and global search.
 
 import { getBodyRows, getCachedBodyRows } from './utils.js';
+import { saveSession } from './session.js';
 
 /** Apply global search + all active column filters together. */
 export function applyAllFilters(table) {
@@ -36,6 +37,7 @@ export function applyAllFilters(table) {
 
   if (typeof table._wteApplyStripes   === 'function') table._wteApplyStripes();
   if (typeof table._wteRefreshCount   === 'function') table._wteRefreshCount();
+  saveSession(table);
 }
 
 export function hideColFilterPanel() {
