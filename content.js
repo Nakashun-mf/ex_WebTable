@@ -1336,12 +1336,15 @@
     ta.select();
     try {
       const ok = document.execCommand("copy");
-      notify(ok ? `${rowCount} \u884C\u3092\u30B3\u30D4\u30FC\u3057\u307E\u3057\u305F \u2713` : "\u30B3\u30D4\u30FC\u306B\u5931\u6557\u3057\u307E\u3057\u305F\u3002");
+      notify(ok ? `${rowCount} \u884C\u3092\u30B3\u30D4\u30FC\u3057\u307E\u3057\u305F \u2713` : copyFailMessage());
     } catch {
-      notify("\u30B3\u30D4\u30FC\u306B\u5931\u6557\u3057\u307E\u3057\u305F\u3002");
+      notify(copyFailMessage());
     } finally {
       ta.remove();
     }
+  }
+  function copyFailMessage() {
+    return location.protocol === "http:" ? "\u30B3\u30D4\u30FC\u306B\u5931\u6557\u3057\u307E\u3057\u305F\uFF08HTTP\u30DA\u30FC\u30B8\u3067\u306F\u30AF\u30EA\u30C3\u30D7\u30DC\u30FC\u30C9\u3078\u306E\u30A2\u30AF\u30BB\u30B9\u304C\u5236\u9650\u3055\u308C\u3066\u3044\u307E\u3059\uFF09\u3002CSV\u30C0\u30A6\u30F3\u30ED\u30FC\u30C9\u3092\u3054\u5229\u7528\u304F\u3060\u3055\u3044\u3002" : "\u30B3\u30D4\u30FC\u306B\u5931\u6557\u3057\u307E\u3057\u305F\u3002";
   }
 
   // src/index.js
