@@ -297,6 +297,25 @@
   vertical-align: middle !important;
 }
 
+/* ─── Text-wrap mode toggle ──────────────────────────────────────────── */
+.wte-rich.wte-wrap-mode td,
+.wte-rich.wte-wrap-mode tbody th {
+  white-space: normal !important;
+}
+.wte-tree.wte-wrap-mode td,
+.wte-tree.wte-wrap-mode th {
+  white-space: normal !important;
+}
+
+/* ─── Column drag-reorder ────────────────────────────────────────────── */
+.wte-col-dragging {
+  opacity: 0.55 !important;
+  cursor: grabbing !important;
+}
+.wte-col-drag-over {
+  box-shadow: inset 3px 0 0 var(--wte-accent) !important;
+}
+
 /* ─── Row highlight ──────────────────────────────────────────────────── */
 .wte-rich tbody tr.wte-highlight,
 .wte-tree tbody tr.wte-highlight {

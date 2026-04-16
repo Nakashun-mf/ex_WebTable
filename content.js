@@ -155,11 +155,12 @@ function transformToRich(table) {
       textContent: '↕'
     });
     cell.appendChild(arrow);
-    cell.addEventListener('click', () => sortBy(table, i));
+    // Use dataset.col (not closure i) so sort still works after column reorder
+    cell.addEventListener('click', () => sortBy(table, parseInt(cell.dataset.col)));
     cell.addEventListener('keydown', e => {
       if (e.key === 'Enter' || e.key === ' ') {
         e.preventDefault();
-        sortBy(table, i);
+        sortBy(table, parseInt(cell.dataset.col));
       }
     });
   });
@@ -195,6 +196,7 @@ function transformToRich(table) {
   applyStripes();
   setupTableInteraction(table);
   addColResizeHandles(table);
+  addColReorderHandles(table);
   notify('リッチ表示に変換しました ✓');
 }
 
@@ -267,6 +269,90 @@ function addColResizeHandles(table) {
       handle.addEventListener('click', e => e.stopPropagation());
     });
   });
+}
+
+/* ─── Column Reorder ───────────────────────────────────────────────────── */
+
+function addColReorderHandles(table) {
+  const headers = getHeaderCells(table);
+  if (headers.length < 2) return;
+
+  headers.forEach(th => {
+    th.setAttribute('draggable', 'true');
+
+    th.addEventListener('dragstart', e => {
+      table._wteDragColIdx = parseInt(th.dataset.col);
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', th.dataset.col);
+      th.classList.add('wte-col-dragging');
+    });
+
+    th.addEventListener('dragend', () => {
+      th.classList.remove('wte-col-dragging');
+      getHeaderCells(table).forEach(h => h.classList.remove('wte-col-drag-over'));
+      table._wteDragColIdx = undefined;
+    });
+
+    th.addEventListener('dragover', e => {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+    });
+
+    th.addEventListener('dragenter', e => {
+      e.preventDefault();
+      const toIdx = parseInt(th.dataset.col);
+      if (table._wteDragColIdx !== undefined && table._wteDragColIdx !== toIdx) {
+        getHeaderCells(table).forEach(h => h.classList.remove('wte-col-drag-over'));
+        th.classList.add('wte-col-drag-over');
+      }
+    });
+
+    th.addEventListener('dragleave', () => {
+      th.classList.remove('wte-col-drag-over');
+    });
+
+    th.addEventListener('drop', e => {
+      e.preventDefault();
+      th.classList.remove('wte-col-drag-over');
+      const fromIdx = table._wteDragColIdx;
+      const toIdx   = parseInt(th.dataset.col);
+      if (fromIdx === undefined || fromIdx === toIdx) return;
+      reorderColumn(table, fromIdx, toIdx);
+    });
+  });
+}
+
+function reorderColumn(table, fromIdx, toIdx) {
+  // Move the cell at fromIdx to toIdx in every row
+  const allRows = [
+    ...(table.tHead ? Array.from(table.tHead.rows) : []),
+    ...getBodyRows(table)
+  ];
+  allRows.forEach(row => {
+    const cells = Array.from(row.cells);
+    const cell  = cells[fromIdx];
+    const ref   = cells[toIdx];
+    if (!cell || !ref) return;
+    if (fromIdx < toIdx) ref.after(cell);
+    else                 ref.before(cell);
+  });
+
+  // Sync colgroup col elements
+  if (table._wteCols) {
+    const col    = table._wteCols[fromIdx];
+    const refCol = table._wteCols[toIdx];
+    if (col && refCol) {
+      if (fromIdx < toIdx) refCol.after(col);
+      else                 refCol.before(col);
+    }
+    const newCols = [...table._wteCols];
+    newCols.splice(fromIdx, 1);
+    newCols.splice(toIdx, 0, col);
+    table._wteCols = newCols;
+  }
+
+  // Re-index dataset.col on all header cells
+  getHeaderCells(table).forEach((th, i) => { th.dataset.col = i; });
 }
 
 function sortBy(table, col) {
@@ -439,6 +525,9 @@ function transformToTree(table) {
   const rootNodes = nodes.filter(n => !n.parent);
   if (rootNodes.length) rootNodes[rootNodes.length - 1].isLastChild = true;
 
+  // Persist nodes for expand/collapse operations
+  table._wteNodes = nodes;
+
   // Strip indent prefixes before injecting buttons (indent mode only)
   if (indentMode) {
     nodes.forEach(node => {
@@ -485,6 +574,52 @@ function transformToTree(table) {
 
   setupTableInteraction(table);
   notify('ツリー表示に変換しました ✓');
+}
+
+/* ─── Tree Expand / Collapse ───────────────────────────────────────────── */
+
+function expandAll(table) {
+  const nodes = table._wteNodes;
+  if (!nodes) return;
+  nodes.forEach(node => {
+    node.el.hidden = false;
+    if (node.children.length) {
+      node.open = true;
+      const btn = node.el.cells[0]?.querySelector('.wte-btn');
+      if (btn) { btn.textContent = '−'; btn.title = '折りたたむ'; btn.setAttribute('aria-expanded', 'true'); }
+    }
+  });
+}
+
+function collapseAll(table) {
+  const nodes = table._wteNodes;
+  if (!nodes) return;
+  nodes.forEach(node => {
+    if (node.parent) node.el.hidden = true;
+    if (node.children.length) {
+      node.open = false;
+      const btn = node.el.cells[0]?.querySelector('.wte-btn');
+      if (btn) { btn.textContent = '+'; btn.title = '展開する'; btn.setAttribute('aria-expanded', 'false'); }
+    }
+  });
+}
+
+function expandToLevel(table, maxLevel) {
+  const nodes = table._wteNodes;
+  if (!nodes) return;
+  nodes.forEach(node => {
+    node.el.hidden = node.level > maxLevel;
+    if (node.children.length) {
+      const open = node.level < maxLevel;
+      node.open  = open;
+      const btn  = node.el.cells[0]?.querySelector('.wte-btn');
+      if (btn) {
+        btn.textContent = open ? '−' : '+';
+        btn.title       = open ? '折りたたむ' : '展開する';
+        btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+      }
+    }
+  });
 }
 
 /**
@@ -562,6 +697,7 @@ function resetTable(table) {
   delete table._wteInteractionSetup;
   delete table._wteLastClickedRow;
   delete table._wteCols;
+  delete table._wteNodes;
 
   notify('元の表示に戻しました ✓');
 }
@@ -632,7 +768,16 @@ function showMenu(clientX, clientY, table, row) {
 
   menu.appendChild(makeSep());
 
-  // ③ Switch view
+  // ③ Text-wrap mode toggle (both rich and tree)
+  const isWrapMode = table.classList.contains('wte-wrap-mode');
+  menu.appendChild(makeMenuItem(
+    isWrapMode ? '折り返し: オフ（横スクロール）' : '折り返し: オン（列幅に合わせる）',
+    () => { table.classList.toggle('wte-wrap-mode'); hideMenu(); }
+  ));
+
+  menu.appendChild(makeSep());
+
+  // ④ Switch view
   menu.appendChild(makeMenuItem(
     isRich ? 'ツリー表示に変換' : 'リッチ表示に変換',
     () => {
@@ -642,6 +787,21 @@ function showMenu(clientX, clientY, table, row) {
       hideMenu();
     }
   ));
+
+  // ⑤ Tree expand / collapse (tree only)
+  if (!isRich && table._wteNodes) {
+    const maxLv = Math.max(...table._wteNodes.map(n => n.level));
+    menu.appendChild(makeSep());
+    menu.appendChild(makeMenuItem('全展開', () => { expandAll(table); hideMenu(); }));
+    menu.appendChild(makeMenuItem('全折畳み', () => { collapseAll(table); hideMenu(); }));
+    for (let lv = 1; lv < maxLv; lv++) {
+      const level = lv;
+      menu.appendChild(makeMenuItem(
+        `レベル${level}まで展開`,
+        () => { expandToLevel(table, level); hideMenu(); }
+      ));
+    }
+  }
 
   menu.appendChild(makeSep());
 
