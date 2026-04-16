@@ -726,7 +726,7 @@ function showMenu(clientX, clientY, table, row) {
   // ③ Text-wrap mode toggle (both rich and tree)
   const isWrapMode = table.classList.contains('wte-wrap-mode');
   menu.appendChild(makeMenuItem(
-    isWrapMode ? '折り返し: オフ（横スクロール）' : '折り返し: オン（列幅に合わせる）',
+    isWrapMode ? 'はみ出し表示にする（改行なし）' : '画面内に収める（改行あり）',
     () => {
       const enabling = !table.classList.contains('wte-wrap-mode');
       table.classList.toggle('wte-wrap-mode');
