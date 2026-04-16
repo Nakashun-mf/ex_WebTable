@@ -51,6 +51,7 @@
 /* ─── Wrapper (rich table only) ──────────────────────────────────────── */
 .wte-wrap {
   display: block;
+  width: fit-content;
   max-width: 100%;
   border-radius: 10px;
   overflow-x: auto;
@@ -62,6 +63,7 @@
 /* ─── Wrapper (tree table) ───────────────────────────────────────────── */
 .wte-tree-wrap {
   display: block;
+  width: fit-content;
   max-width: 100%;
   overflow-x: auto;
   font-family: system-ui, -apple-system, sans-serif;
@@ -102,7 +104,7 @@
 /* ─── Rich table ─────────────────────────────────────────────────────── */
 .wte-rich {
   border-collapse: collapse !important;
-  width: 100% !important;
+  width: auto !important;
   font: 14px/1.5 system-ui, -apple-system, sans-serif !important;
   color: var(--wte-text-body) !important;
 }
@@ -180,11 +182,15 @@
 
 /* ─── Tree connector line spans ──────────────────────────────────────── */
 
-/* Wrapper that holds all line-slot spans */
+/* Wrapper that holds all line-slot spans.
+   Negative margins bridge the 8px cell padding so vertical lines
+   reach the cell boundary and connect visually between adjacent rows. */
 .wte-tree-prefix {
   display: flex !important;
   align-self: stretch !important;
   flex-shrink: 0 !important;
+  margin-top: -8px !important;
+  margin-bottom: -8px !important;
 }
 
 /* Each slot is 18 px wide and stretches to full cell height */
@@ -298,13 +304,19 @@
 }
 
 /* ─── Text-wrap mode toggle ──────────────────────────────────────────── */
-.wte-rich.wte-wrap-mode td,
-.wte-rich.wte-wrap-mode tbody th {
-  white-space: normal !important;
+/* Force table to fit within the wrapper so text can wrap */
+.wte-rich.wte-wrap-mode,
+.wte-tree.wte-wrap-mode {
+  table-layout: fixed !important;
+  width: 100% !important;
 }
+.wte-rich.wte-wrap-mode td,
+.wte-rich.wte-wrap-mode tbody th,
 .wte-tree.wte-wrap-mode td,
 .wte-tree.wte-wrap-mode th {
   white-space: normal !important;
+  word-break: break-word !important;
+  overflow-wrap: break-word !important;
 }
 
 /* ─── Column drag-reorder ────────────────────────────────────────────── */

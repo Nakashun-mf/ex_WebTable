@@ -772,7 +772,14 @@ function showMenu(clientX, clientY, table, row) {
   const isWrapMode = table.classList.contains('wte-wrap-mode');
   menu.appendChild(makeMenuItem(
     isWrapMode ? '折り返し: オフ（横スクロール）' : '折り返し: オン（列幅に合わせる）',
-    () => { table.classList.toggle('wte-wrap-mode'); hideMenu(); }
+    () => {
+      const enabling = !table.classList.contains('wte-wrap-mode');
+      table.classList.toggle('wte-wrap-mode');
+      // Expand wrapper to full width in wrap mode so table can fill it
+      const wrapEl = table.closest('.wte-wrap, .wte-tree-wrap');
+      if (wrapEl) wrapEl.style.width = enabling ? '100%' : '';
+      hideMenu();
+    }
   ));
 
   menu.appendChild(makeSep());
