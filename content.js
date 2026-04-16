@@ -513,18 +513,6 @@ function transformToTree(table) {
     stack.push(node);
   });
 
-  // Mark each node as last-child within its parent's children list
-  nodes.forEach(node => {
-    if (node.parent) {
-      const siblings = node.parent.children;
-      node.isLastChild = (siblings[siblings.length - 1] === node);
-    } else {
-      node.isLastChild = false; // updated below for last root
-    }
-  });
-  const rootNodes = nodes.filter(n => !n.parent);
-  if (rootNodes.length) rootNodes[rootNodes.length - 1].isLastChild = true;
-
   // Persist nodes for expand/collapse operations
   table._wteNodes = nodes;
 
@@ -536,13 +524,15 @@ function transformToTree(table) {
     });
   }
 
-  // Inject tree-line prefix spans, then toggle button / leaf spacer
+  // Inject indentation and toggle button / leaf spacer
   nodes.forEach(node => {
     const cell = node.el.cells[0];
     if (!cell) return;
 
-    // ① toggle button or spacer
-    let marker;
+    // Apply indentation via CSS custom property (overrides !important padding)
+    const indentPx = 8 + (node.level - 1) * 20;
+    cell.style.setProperty('--wte-indent', `${indentPx}px`);
+
     if (node.children.length) {
       const btn = document.createElement('button');
       btn.className = 'wte-btn';
@@ -550,25 +540,12 @@ function transformToTree(table) {
       btn.title = '折りたたむ';
       btn.setAttribute('aria-expanded', 'true');
       btn.addEventListener('click', e => { e.stopPropagation(); toggleNode(node, btn); });
-      marker = btn;
+      cell.insertBefore(btn, cell.firstChild);
     } else {
+      // Leaf node — spacer keeps text aligned with toggle-button rows
       const spc = document.createElement('span');
       spc.className = 'wte-spc';
-      marker = spc;
-    }
-    cell.insertBefore(marker, cell.firstChild);
-
-    // ② tree-line prefix (inserted before the button/spacer)
-    const types = treeLineTypes(node);
-    if (types.length) {
-      const prefix = document.createElement('span');
-      prefix.className = 'wte-tree-prefix';
-      types.forEach(t => {
-        const s = document.createElement('span');
-        s.className = `wte-tl-${t}`;
-        prefix.appendChild(s);
-      });
-      cell.insertBefore(prefix, marker);
+      cell.insertBefore(spc, cell.firstChild);
     }
   });
 
@@ -620,34 +597,6 @@ function expandToLevel(table, maxLevel) {
       }
     }
   });
-}
-
-/**
- * Returns the ordered list of line-slot types for a node's prefix:
- *   'gap'   – ancestor at this level was the last child (no continuation line)
- *   'vline' – ancestor at this level still has siblings below (│)
- *   'mid'   – current node is NOT the last child (├─)
- *   'last'  – current node IS  the last child    (└─)
- * Root nodes return [] (no prefix needed).
- */
-function treeLineTypes(node) {
-  if (!node.parent) return [];
-
-  // Build chain from root down to this node
-  const chain = [];
-  let cur = node;
-  while (cur) { chain.unshift(cur); cur = cur.parent; }
-  // chain[0] = root, chain[last] = node
-
-  const types = [];
-  // For each intermediate ancestor (chain[1] .. chain[length-2]):
-  // draw a continuation line if that ancestor is NOT the last child
-  for (let i = 1; i < chain.length - 1; i++) {
-    types.push(chain[i].isLastChild ? 'gap' : 'vline');
-  }
-  // Connector for the current node itself
-  types.push(node.isLastChild ? 'last' : 'mid');
-  return types;
 }
 
 function toggleNode(node, btn) {
@@ -772,7 +721,14 @@ function showMenu(clientX, clientY, table, row) {
   const isWrapMode = table.classList.contains('wte-wrap-mode');
   menu.appendChild(makeMenuItem(
     isWrapMode ? '折り返し: オフ（横スクロール）' : '折り返し: オン（列幅に合わせる）',
-    () => { table.classList.toggle('wte-wrap-mode'); hideMenu(); }
+    () => {
+      const enabling = !table.classList.contains('wte-wrap-mode');
+      table.classList.toggle('wte-wrap-mode');
+      // Expand wrapper to full width in wrap mode so table can fill it
+      const wrapEl = table.closest('.wte-wrap, .wte-tree-wrap');
+      if (wrapEl) wrapEl.style.width = enabling ? '100%' : '';
+      hideMenu();
+    }
   ));
 
   menu.appendChild(makeSep());
