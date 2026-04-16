@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WebTable Enhancer — テーブルを、もっと使いやすく。</title>
+  <meta name="description" content="HTML テーブルを右クリック一発でリッチな表示に変換する Chrome 拡張機能。検索・ソート・フィルター・ツリー表示に対応。">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --font:       "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
+      --bg:         #f9fafb;
+      --surface:    #ffffff;
+      --border:     #e4e7ec;
+      --border-2:   #d0d5dd;
+      --text:       #101828;
+      --text-2:     #344054;
+      --muted:      #667085;
+      --accent:     #2563eb;
+      --accent-h:   #1d4ed8;
+      --accent-bg:  #eff6ff;
+      --accent-bd:  #bfdbfe;
+      --hero-bg:    #0a0e1a;
+      --mono:       "Cascadia Code", "Fira Code", ui-monospace, monospace;
+    }
+
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ─── Nav ───────────────────────────────────────────────────────────── */
+    .nav {
+      position: sticky;
+      top: 0;
+      z-index: 200;
+      height: 58px;
+      background: rgba(10, 14, 26, .88);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-bottom: 1px solid rgba(255,255,255,.07);
+    }
+    .nav-inner {
+      max-width: 1080px;
+      margin: 0 auto;
+      padding: 0 2rem;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+    }
+    .nav-logo {
+      display: flex;
+      align-items: center;
+      gap: .5rem;
+      text-decoration: none;
+      flex-shrink: 0;
+    }
+    .nav-logo svg { width: 26px; height: 26px; }
+    .nav-logo-name {
+      font-size: .9rem;
+      font-weight: 700;
+      color: #fff;
+      letter-spacing: -.2px;
+    }
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 1.25rem;
+    }
+    .nav-links a {
+      font-size: .85rem;
+      font-weight: 500;
+      color: rgba(255,255,255,.55);
+      text-decoration: none;
+      transition: color .15s;
+    }
+    .nav-links a:hover { color: rgba(255,255,255,.9); }
+    .nav-gh {
+      padding: .38rem 1rem;
+      background: rgba(255,255,255,.09);
+      border: 1px solid rgba(255,255,255,.14);
+      border-radius: 8px;
+      color: rgba(255,255,255,.85) !important;
+      transition: background .15s, border-color .15s !important;
+    }
+    .nav-gh:hover {
+      background: rgba(255,255,255,.16) !important;
+      border-color: rgba(255,255,255,.25) !important;
+    }
+    @media (max-width: 600px) {
+      .nav-hide { display: none; }
+    }
+
+    /* ─── Hero ──────────────────────────────────────────────────────────── */
+    .hero {
+      position: relative;
+      overflow: hidden;
+      background: var(--hero-bg);
+      padding: 7rem 2rem 8.5rem;
+      text-align: center;
+    }
+    .hero::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 80% 60% at 50% -10%, rgba(37,99,235,.45) 0%, transparent 70%),
+        linear-gradient(rgba(255,255,255,.035) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,.035) 1px, transparent 1px);
+      background-size: auto, 52px 52px, 52px 52px;
+      pointer-events: none;
+    }
+    .hero-inner {
+      position: relative;
+      max-width: 700px;
+      margin: 0 auto;
+    }
+    .hero-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: .4rem;
+      padding: .28rem 1rem;
+      margin-bottom: 2rem;
+      background: rgba(37,99,235,.14);
+      border: 1px solid rgba(37,99,235,.4);
+      border-radius: 100px;
+      font-size: .72rem;
+      font-weight: 700;
+      color: #93c5fd;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+    .hero-pill::before {
+      content: "";
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: #60a5fa;
+      flex-shrink: 0;
+    }
+    .hero h1 {
+      font-size: clamp(2.5rem, 5.5vw, 4rem);
+      font-weight: 900;
+      line-height: 1.08;
+      letter-spacing: -.04em;
+      color: #fff;
+      margin-bottom: 1.4rem;
+    }
+    .hero h1 em {
+      font-style: normal;
+      background: linear-gradient(120deg, #60a5fa 0%, #a78bfa 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .hero-desc {
+      font-size: 1.1rem;
+      color: rgba(255,255,255,.52);
+      max-width: 460px;
+      margin: 0 auto 2.75rem;
+      line-height: 1.75;
+    }
+    .hero-btns {
+      display: flex;
+      gap: .75rem;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: .45rem;
+      padding: .7rem 1.6rem;
+      border-radius: 10px;
+      font-size: .92rem;
+      font-weight: 600;
+      text-decoration: none;
+      transition: all .15s;
+      white-space: nowrap;
+      font-family: var(--font);
+    }
+    .btn-primary {
+      background: var(--accent);
+      color: #fff;
+      box-shadow: 0 1px 3px rgba(37,99,235,.35), 0 6px 20px rgba(37,99,235,.22);
+    }
+    .btn-primary:hover {
+      background: var(--accent-h);
+      box-shadow: 0 2px 4px rgba(37,99,235,.4), 0 8px 28px rgba(37,99,235,.3);
+      transform: translateY(-1px);
+    }
+    .btn-ghost {
+      background: rgba(255,255,255,.07);
+      color: rgba(255,255,255,.8);
+      border: 1px solid rgba(255,255,255,.15);
+    }
+    .btn-ghost:hover {
+      background: rgba(255,255,255,.13);
+      color: #fff;
+    }
+    @media (max-width: 480px) {
+      .hero { padding: 5rem 1.25rem 6.5rem; }
+    }
+
+    /* ─── Content wrapper ───────────────────────────────────────────────── */
+    .content {
+      max-width: 1080px;
+      margin: 0 auto;
+      padding: 5.5rem 2rem 7rem;
+    }
+    @media (max-width: 640px) {
+      .content { padding: 3.5rem 1.25rem 5rem; }
+    }
+
+    /* ─── Section header ────────────────────────────────────────────────── */
+    .sec-eyebrow {
+      font-size: .72rem;
+      font-weight: 700;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: .5rem;
+    }
+    .sec-title {
+      font-size: 1.65rem;
+      font-weight: 800;
+      letter-spacing: -.03em;
+      margin-bottom: .55rem;
+    }
+    .sec-desc {
+      font-size: .975rem;
+      color: var(--muted);
+      max-width: 500px;
+      line-height: 1.7;
+      margin-bottom: 2.5rem;
+    }
+
+    /* ─── Feature grid ──────────────────────────────────────────────────── */
+    .feat-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 1rem;
+      margin-bottom: 4.5rem;
+    }
+    .feat-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 1.5rem 1.5rem 1.6rem;
+      transition: box-shadow .2s, transform .2s, border-color .2s;
+    }
+    .feat-card:hover {
+      box-shadow: 0 4px 16px rgba(0,0,0,.06), 0 1px 3px rgba(0,0,0,.04);
+      transform: translateY(-2px);
+      border-color: var(--border-2);
+    }
+    .feat-icon {
+      width: 38px;
+      height: 38px;
+      border-radius: 10px;
+      background: var(--accent-bg);
+      border: 1px solid var(--accent-bd);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1rem;
+      line-height: 1;
+      margin-bottom: .95rem;
+    }
+    .feat-card h3 {
+      font-size: .925rem;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: .35rem;
+      letter-spacing: -.01em;
+    }
+    .feat-card p {
+      font-size: .85rem;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+
+    /* ─── Divider ───────────────────────────────────────────────────────── */
+    .rule {
+      height: 1px;
+      background: var(--border);
+      margin: 4rem 0;
+    }
+
+    /* ─── Tags ──────────────────────────────────────────────────────────── */
+    .tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: .45rem;
+      margin-bottom: 4.5rem;
+    }
+    .tag {
+      background: var(--accent-bg);
+      color: var(--accent);
+      border: 1px solid var(--accent-bd);
+      border-radius: 100px;
+      padding: .22rem .8rem;
+      font-size: .77rem;
+      font-weight: 600;
+      letter-spacing: -.01em;
+    }
+
+    /* ─── Install steps ─────────────────────────────────────────────────── */
+    .steps { display: flex; flex-direction: column; }
+    .step {
+      display: flex;
+      align-items: flex-start;
+      gap: 1.25rem;
+      padding: 1.4rem 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .step:last-child { border-bottom: none; }
+    .step-num {
+      flex-shrink: 0;
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      background: var(--accent);
+      color: #fff;
+      font-size: .78rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-top: .1rem;
+      font-family: var(--font);
+    }
+    .step-body {
+      font-size: .9rem;
+      color: var(--text-2);
+      line-height: 1.65;
+    }
+    .step-body strong {
+      display: block;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: .25rem;
+      font-size: .95rem;
+    }
+    code {
+      background: #f1f5f9;
+      color: #1e3a5f;
+      border: 1px solid #dde3ed;
+      border-radius: 6px;
+      padding: .15em .5em;
+      font-size: .84em;
+      font-family: var(--mono);
+      white-space: nowrap;
+    }
+
+    /* ─── Footer ────────────────────────────────────────────────────────── */
+    .footer {
+      border-top: 1px solid var(--border);
+      padding: 2rem;
+    }
+    .footer-inner {
+      max-width: 1080px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+    .footer-logo {
+      display: flex;
+      align-items: center;
+      gap: .45rem;
+      text-decoration: none;
+      color: var(--text-2);
+      font-size: .85rem;
+      font-weight: 600;
+    }
+    .footer-logo svg { width: 20px; height: 20px; }
+    .footer-links {
+      display: flex;
+      gap: 1.5rem;
+    }
+    .footer-links a {
+      font-size: .85rem;
+      color: var(--muted);
+      text-decoration: none;
+      transition: color .15s;
+    }
+    .footer-links a:hover { color: var(--text); }
+    @media (max-width: 560px) {
+      .footer-inner { justify-content: center; text-align: center; }
+      .footer-links { justify-content: center; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ─── Nav ─────────────────────────────────────────────────────────────── -->
+<header class="nav">
+  <div class="nav-inner">
+    <a class="nav-logo" href="https://github.com/nakashun-mf/ex_webtable">
+      <svg viewBox="0 0 26 26" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <rect width="26" height="26" rx="6" fill="#2563eb"/>
+        <rect x="3.5" y="3.5" width="19" height="19" rx="2" stroke="white" stroke-width="1.5"/>
+        <line x1="3.5" y1="10" x2="22.5" y2="10" stroke="white" stroke-width="1.5"/>
+        <line x1="12" y1="3.5" x2="12" y2="22.5" stroke="white" stroke-width="1.5"/>
+        <line x1="3.5" y1="16.5" x2="22.5" y2="16.5" stroke="white" stroke-width="1"/>
+      </svg>
+      <span class="nav-logo-name">WebTable Enhancer</span>
+    </a>
+    <nav class="nav-links" aria-label="サイトナビゲーション">
+      <a href="#features" class="nav-hide">機能</a>
+      <a href="#install" class="nav-hide">インストール</a>
+      <a href="privacy-policy.html" class="nav-hide">プライバシー</a>
+      <a href="https://github.com/nakashun-mf/ex_webtable" class="nav-gh">GitHub →</a>
+    </nav>
+  </div>
+</header>
+
+<!-- ─── Hero ─────────────────────────────────────────────────────────────── -->
+<section class="hero" aria-labelledby="hero-heading">
+  <div class="hero-inner">
+    <div class="hero-pill">Chrome Extension · Manifest V3</div>
+    <h1 id="hero-heading">テーブルを、<br><em>もっと使いやすく。</em></h1>
+    <p class="hero-desc">HTML テーブルを右クリック一発でリッチな表示に変換。検索・ソート・フィルター・ツリー表示など、本格的なデータ操作をそのままブラウザで。</p>
+    <div class="hero-btns">
+      <a class="btn btn-primary" href="https://github.com/nakashun-mf/ex_webtable">GitHub で見る</a>
+      <a class="btn btn-ghost" href="#install">インストール方法</a>
+    </div>
+  </div>
+</section>
+
+<!-- ─── Features ─────────────────────────────────────────────────────────── -->
+<main class="content" id="features">
+
+  <div>
+    <p class="sec-eyebrow">Rich View</p>
+    <h2 class="sec-title">リッチ表示</h2>
+    <p class="sec-desc">Excel ライクな操作をそのままブラウザで。あらゆる HTML テーブルに対応します。</p>
+  </div>
+
+  <div class="feat-grid">
+    <div class="feat-card">
+      <div class="feat-icon">🔍</div>
+      <h3>グローバル検索</h3>
+      <p>全列を横断してリアルタイムに絞り込み。マッチ件数もカウント表示。</p>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon">⇅</div>
+      <h3>列ソート</h3>
+      <p>数値・日付・テキストを自動判定して昇順 / 降順に並べ替え。</p>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon">☑</div>
+      <h3>列フィルター</h3>
+      <p>チェックボックス形式の Excel ライクフィルターを全列に装備。</p>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon">↔</div>
+      <h3>列リサイズ・並替</h3>
+      <p>ドラッグで列幅を変更、ヘッダーを掴んで列順を自在に入れ替え。</p>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon">👁</div>
+      <h3>列の表示 / 非表示</h3>
+      <p>不要な列をワンクリックで隠して、見たい情報だけに集中。</p>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon">💾</div>
+      <h3>CSV エクスポート</h3>
+      <p>表示中のデータを即座に CSV で書き出し。フィルター結果にも対応。</p>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon">✅</div>
+      <h3>行選択・コピー</h3>
+      <p>Shift / Ctrl クリックで複数行を選択してクリップボードへコピー。</p>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon">🌟</div>
+      <h3>行ハイライト</h3>
+      <p>重要な行をハイライトしてマーキング。目視確認の効率が上がる。</p>
+    </div>
+  </div>
+
+  <div class="rule"></div>
+
+  <div>
+    <p class="sec-eyebrow">Tree View</p>
+    <h2 class="sec-title">ツリー表示</h2>
+    <p class="sec-desc">階層データを持つテーブルをインタラクティブなツリーに自動変換します。</p>
+  </div>
+
+  <div class="feat-grid">
+    <div class="feat-card">
+      <div class="feat-icon">📋</div>
+      <h3>階層の自動検出</h3>
+      <p>Level 列・レベル列・アンダースコアインデントなど複数の形式に対応。</p>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon">＋−</div>
+      <h3>展開 / 折りたたみ</h3>
+      <p>ノードごとに展開・折りたたみ。子孫ごとまとめての操作も可能。</p>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon">📄</div>
+      <h3>全展開・全折畳み</h3>
+      <p>ワンクリックで全ノードを一括操作。全体像の把握に。</p>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon">🏗</div>
+      <h3>レベル指定展開</h3>
+      <p>任意の深さまで展開して、中間レベルの構造を俯瞰できる。</p>
+    </div>
+  </div>
+
+  <div class="tags">
+    <span class="tag">Level列</span>
+    <span class="tag">レベル列</span>
+    <span class="tag">階層列</span>
+    <span class="tag">アンダースコアインデント</span>
+  </div>
+
+  <div class="rule"></div>
+
+  <!-- Install -->
+  <div id="install">
+    <p class="sec-eyebrow">Developer</p>
+    <h2 class="sec-title">インストール（開発者向け）</h2>
+    <p class="sec-desc">Chrome ウェブストア未公開のため、開発者モードで読み込みます。</p>
+  </div>
+
+  <div class="steps">
+    <div class="step">
+      <div class="step-num">1</div>
+      <div class="step-body">
+        <strong>リポジトリをクローン</strong>
+        <code>git clone https://github.com/nakashun-mf/ex_webtable.git</code>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <div class="step-body">
+        <strong>依存関係インストール &amp; ビルド</strong>
+        <code>npm install &amp;&amp; npm run build</code>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">3</div>
+      <div class="step-body">
+        <strong>Chrome の拡張機能ページを開く</strong>
+        アドレスバーに <code>chrome://extensions</code> と入力してアクセス
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">4</div>
+      <div class="step-body">
+        <strong>デベロッパーモードを ON にする</strong>
+        右上のトグルをオンにして「パッケージ化されていない拡張機能を読み込む」をクリック
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">5</div>
+      <div class="step-body">
+        <strong>フォルダを選択して完了</strong>
+        クローンしたディレクトリを選択すればインストール完了です
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<!-- ─── Footer ────────────────────────────────────────────────────────────── -->
+<footer class="footer">
+  <div class="footer-inner">
+    <a class="footer-logo" href="https://github.com/nakashun-mf/ex_webtable">
+      <svg viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <rect width="20" height="20" rx="4.5" fill="#2563eb"/>
+        <rect x="2.5" y="2.5" width="15" height="15" rx="1.5" stroke="white" stroke-width="1.2"/>
+        <line x1="2.5" y1="7.5" x2="17.5" y2="7.5" stroke="white" stroke-width="1.2"/>
+        <line x1="9.5" y1="2.5" x2="9.5" y2="17.5" stroke="white" stroke-width="1.2"/>
+        <line x1="2.5" y1="12.5" x2="17.5" y2="12.5" stroke="white" stroke-width=".8"/>
+      </svg>
+      WebTable Enhancer
+    </a>
+    <div class="footer-links">
+      <a href="https://github.com/nakashun-mf/ex_webtable">GitHub</a>
+      <a href="privacy-policy.html">プライバシーポリシー</a>
+      <a href="https://github.com/nakashun-mf/ex_webtable/blob/main/docs/DESIGN.md">設計書</a>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

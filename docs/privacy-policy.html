@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>プライバシーポリシー — WebTable Enhancer</title>
+  <meta name="description" content="WebTable Enhancer のプライバシーポリシー。いかなるデータも収集・送信しません。">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --font:      "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
+      --bg:        #f9fafb;
+      --surface:   #ffffff;
+      --border:    #e4e7ec;
+      --text:      #101828;
+      --text-2:    #344054;
+      --muted:     #667085;
+      --accent:    #2563eb;
+      --accent-h:  #1d4ed8;
+      --accent-bg: #eff6ff;
+      --accent-bd: #bfdbfe;
+      --hero-bg:   #0a0e1a;
+      --mono:      "Cascadia Code", "Fira Code", ui-monospace, monospace;
+    }
+
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ─── Nav ───────────────────────────────────────────────────────────── */
+    .nav {
+      position: sticky;
+      top: 0;
+      z-index: 200;
+      height: 58px;
+      background: rgba(10, 14, 26, .88);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-bottom: 1px solid rgba(255,255,255,.07);
+    }
+    .nav-inner {
+      max-width: 1080px;
+      margin: 0 auto;
+      padding: 0 2rem;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+    }
+    .nav-logo {
+      display: flex;
+      align-items: center;
+      gap: .5rem;
+      text-decoration: none;
+    }
+    .nav-logo svg { width: 26px; height: 26px; }
+    .nav-logo-name {
+      font-size: .9rem;
+      font-weight: 700;
+      color: #fff;
+      letter-spacing: -.2px;
+    }
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 1.25rem;
+    }
+    .nav-links a {
+      font-size: .85rem;
+      font-weight: 500;
+      color: rgba(255,255,255,.55);
+      text-decoration: none;
+      transition: color .15s;
+    }
+    .nav-links a:hover { color: rgba(255,255,255,.9); }
+    .nav-gh {
+      padding: .38rem 1rem;
+      background: rgba(255,255,255,.09);
+      border: 1px solid rgba(255,255,255,.14);
+      border-radius: 8px;
+      color: rgba(255,255,255,.85) !important;
+      transition: background .15s, border-color .15s !important;
+    }
+    .nav-gh:hover {
+      background: rgba(255,255,255,.16) !important;
+      border-color: rgba(255,255,255,.25) !important;
+    }
+    @media (max-width: 600px) { .nav-hide { display: none; } }
+
+    /* ─── Page header ───────────────────────────────────────────────────── */
+    .page-header {
+      background: var(--hero-bg);
+      padding: 4.5rem 2rem 5rem;
+      position: relative;
+      overflow: hidden;
+    }
+    .page-header::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 60% 80% at 50% -20%, rgba(37,99,235,.35) 0%, transparent 65%),
+        linear-gradient(rgba(255,255,255,.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,.03) 1px, transparent 1px);
+      background-size: auto, 52px 52px, 52px 52px;
+      pointer-events: none;
+    }
+    .page-header-inner {
+      position: relative;
+      max-width: 720px;
+      margin: 0 auto;
+    }
+    .page-breadcrumb {
+      font-size: .8rem;
+      color: rgba(255,255,255,.4);
+      margin-bottom: 1.25rem;
+    }
+    .page-breadcrumb a {
+      color: rgba(255,255,255,.4);
+      text-decoration: none;
+      transition: color .15s;
+    }
+    .page-breadcrumb a:hover { color: rgba(255,255,255,.7); }
+    .page-breadcrumb span { margin: 0 .4rem; }
+    .page-header h1 {
+      font-size: clamp(1.8rem, 4vw, 2.6rem);
+      font-weight: 900;
+      letter-spacing: -.04em;
+      color: #fff;
+      margin-bottom: .75rem;
+      line-height: 1.15;
+    }
+    .page-header p {
+      font-size: .95rem;
+      color: rgba(255,255,255,.45);
+    }
+
+    /* ─── Article layout ────────────────────────────────────────────────── */
+    .article-wrap {
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 4rem 2rem 7rem;
+    }
+    @media (max-width: 640px) {
+      .article-wrap { padding: 2.5rem 1.25rem 5rem; }
+    }
+
+    /* ─── Summary banner ─────────────────────────────────────────────────  */
+    .summary-banner {
+      display: flex;
+      gap: 1rem;
+      align-items: flex-start;
+      background: var(--accent-bg);
+      border: 1px solid var(--accent-bd);
+      border-radius: 14px;
+      padding: 1.25rem 1.4rem;
+      margin-bottom: 3rem;
+    }
+    .summary-banner-icon {
+      font-size: 1.3rem;
+      flex-shrink: 0;
+      margin-top: .05rem;
+    }
+    .summary-banner p {
+      font-size: .9rem;
+      color: var(--text-2);
+      line-height: 1.65;
+    }
+    .summary-banner strong { color: var(--accent); }
+
+    /* ─── Article sections ──────────────────────────────────────────────── */
+    .art-section {
+      margin-bottom: 2.5rem;
+    }
+    .art-section h2 {
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: .75rem;
+      padding-bottom: .6rem;
+      border-bottom: 1px solid var(--border);
+      letter-spacing: -.01em;
+    }
+    .art-section p {
+      font-size: .9rem;
+      color: var(--text-2);
+      line-height: 1.75;
+      margin-bottom: .7rem;
+    }
+    .art-section p:last-child { margin-bottom: 0; }
+    .art-section ul {
+      padding-left: 0;
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: .65rem;
+    }
+    .art-section ul li {
+      font-size: .9rem;
+      color: var(--text-2);
+      line-height: 1.65;
+      padding-left: 1.2rem;
+      position: relative;
+    }
+    .art-section ul li::before {
+      content: "–";
+      position: absolute;
+      left: 0;
+      color: var(--muted);
+    }
+    .art-section ul li strong { color: var(--text); font-weight: 600; }
+    .art-section a { color: var(--accent); text-decoration: none; }
+    .art-section a:hover { text-decoration: underline; color: var(--accent-h); }
+
+    /* ─── Permission cards ──────────────────────────────────────────────── */
+    .perm-list {
+      display: flex;
+      flex-direction: column;
+      gap: .65rem;
+    }
+    .perm-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1rem 1.25rem;
+      display: flex;
+      gap: .9rem;
+      align-items: flex-start;
+    }
+    .perm-name {
+      flex-shrink: 0;
+      background: #1e293b;
+      color: #93c5fd;
+      border-radius: 6px;
+      padding: .2em .6em;
+      font-size: .78rem;
+      font-family: var(--mono);
+      font-weight: 600;
+      margin-top: .15rem;
+      white-space: nowrap;
+    }
+    .perm-desc {
+      font-size: .875rem;
+      color: var(--text-2);
+      line-height: 1.65;
+    }
+
+    code {
+      background: #f1f5f9;
+      color: #1e3a5f;
+      border: 1px solid #dde3ed;
+      border-radius: 5px;
+      padding: .15em .45em;
+      font-size: .84em;
+      font-family: var(--mono);
+    }
+
+    /* ─── Footer ────────────────────────────────────────────────────────── */
+    .footer {
+      border-top: 1px solid var(--border);
+      padding: 2rem;
+    }
+    .footer-inner {
+      max-width: 1080px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+    .footer-logo {
+      display: flex;
+      align-items: center;
+      gap: .45rem;
+      text-decoration: none;
+      color: var(--text-2);
+      font-size: .85rem;
+      font-weight: 600;
+    }
+    .footer-logo svg { width: 20px; height: 20px; }
+    .footer-links {
+      display: flex;
+      gap: 1.5rem;
+    }
+    .footer-links a {
+      font-size: .85rem;
+      color: var(--muted);
+      text-decoration: none;
+      transition: color .15s;
+    }
+    .footer-links a:hover { color: var(--text); }
+    @media (max-width: 560px) {
+      .footer-inner { justify-content: center; text-align: center; }
+      .footer-links { justify-content: center; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ─── Nav ─────────────────────────────────────────────────────────────── -->
+<header class="nav">
+  <div class="nav-inner">
+    <a class="nav-logo" href="index.html">
+      <svg viewBox="0 0 26 26" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <rect width="26" height="26" rx="6" fill="#2563eb"/>
+        <rect x="3.5" y="3.5" width="19" height="19" rx="2" stroke="white" stroke-width="1.5"/>
+        <line x1="3.5" y1="10" x2="22.5" y2="10" stroke="white" stroke-width="1.5"/>
+        <line x1="12" y1="3.5" x2="12" y2="22.5" stroke="white" stroke-width="1.5"/>
+        <line x1="3.5" y1="16.5" x2="22.5" y2="16.5" stroke="white" stroke-width="1"/>
+      </svg>
+      <span class="nav-logo-name">WebTable Enhancer</span>
+    </a>
+    <nav class="nav-links" aria-label="サイトナビゲーション">
+      <a href="index.html" class="nav-hide">ホーム</a>
+      <a href="index.html#features" class="nav-hide">機能</a>
+      <a href="https://github.com/nakashun-mf/ex_webtable" class="nav-gh">GitHub →</a>
+    </nav>
+  </div>
+</header>
+
+<!-- ─── Page header ───────────────────────────────────────────────────────── -->
+<div class="page-header">
+  <div class="page-header-inner">
+    <p class="page-breadcrumb">
+      <a href="index.html">WebTable Enhancer</a>
+      <span>/</span>
+      プライバシーポリシー
+    </p>
+    <h1>プライバシーポリシー</h1>
+    <p>最終更新: 2026年4月 &nbsp;·&nbsp; Privacy Policy</p>
+  </div>
+</div>
+
+<!-- ─── Article ───────────────────────────────────────────────────────────── -->
+<main class="article-wrap">
+
+  <div class="summary-banner">
+    <div class="summary-banner-icon">🔒</div>
+    <p><strong>一言でまとめると:</strong> WebTable Enhancer はいかなるデータも収集・送信しません。すべての処理はお使いのブラウザ内で完結します。</p>
+  </div>
+
+  <div class="art-section">
+    <h2>1. 収集する情報</h2>
+    <p>WebTable Enhancer は、ユーザーの個人情報・閲覧データ・その他いかなる情報も収集しません。</p>
+  </div>
+
+  <div class="art-section">
+    <h2>2. 動作の概要</h2>
+    <p>本拡張機能は以下の処理のみを行います。</p>
+    <ul>
+      <li>右クリックメニューを通じてユーザーが選択したテーブルを検出し、ブラウザ上で描画を変換する</li>
+      <li>ソート・検索・フィルター・ツリー表示などの UI 機能を提供する</li>
+      <li>ユーザーが明示的に「コピー」操作を行った場合のみ、選択行のテキストをクリップボードに書き込む</li>
+      <li>変換前の HTML をページ内（<code>data-wte-snap</code> 属性）に一時保存し、リセット時に復元する</li>
+    </ul>
+    <p>これらはすべてローカル処理であり、外部サーバーへのデータ送信は一切行いません。</p>
+  </div>
+
+  <div class="art-section">
+    <h2>3. 権限の説明</h2>
+    <div class="perm-list">
+      <div class="perm-card">
+        <span class="perm-name">contextMenus</span>
+        <p class="perm-desc">右クリックメニューに「リッチ表示」「ツリー表示」「リセット」の項目を追加するために使用します。</p>
+      </div>
+      <div class="perm-card">
+        <span class="perm-name">clipboardWrite</span>
+        <p class="perm-desc">ユーザーが右クリックメニューの「選択した行をコピー」を実行した場合に、選択行のテキストをクリップボードへ書き込むために使用します。クリップボードの読み取りは行いません。</p>
+      </div>
+      <div class="perm-card">
+        <span class="perm-name">&lt;all_urls&gt;</span>
+        <p class="perm-desc">すべてのウェブサイト上のテーブルを変換できるようにするために必要です。ページの内容を読み取ることはなく、テーブルの描画変換のみを行います。</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="art-section">
+    <h2>4. サードパーティへのデータ共有</h2>
+    <p>本拡張機能はいかなるサードパーティにもデータを共有しません。外部との通信は一切行いません。</p>
+  </div>
+
+  <div class="art-section">
+    <h2>5. データの保存</h2>
+    <p>本拡張機能はローカルストレージ・Cookie・IndexedDB などを使用しません。ページを離れると変換状態は自動的に消去されます。</p>
+  </div>
+
+  <div class="art-section">
+    <h2>6. 子どものプライバシー</h2>
+    <p>本拡張機能は年齢に関係なく使用できますが、いかなる年齢のユーザーからも情報を収集しません。</p>
+  </div>
+
+  <div class="art-section">
+    <h2>7. ポリシーの変更</h2>
+    <p>本ポリシーを変更する場合は、このページを更新します。重大な変更が生じた場合は、拡張機能のバージョンアップとともに告知します。</p>
+  </div>
+
+  <div class="art-section">
+    <h2>8. お問い合わせ</h2>
+    <p>プライバシーに関するご質問は、<a href="https://github.com/nakashun-mf/ex_webtable/issues" target="_blank" rel="noopener">GitHub Issues</a> よりお気軽にご連絡ください。</p>
+  </div>
+
+</main>
+
+<!-- ─── Footer ────────────────────────────────────────────────────────────── -->
+<footer class="footer">
+  <div class="footer-inner">
+    <a class="footer-logo" href="index.html">
+      <svg viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <rect width="20" height="20" rx="4.5" fill="#2563eb"/>
+        <rect x="2.5" y="2.5" width="15" height="15" rx="1.5" stroke="white" stroke-width="1.2"/>
+        <line x1="2.5" y1="7.5" x2="17.5" y2="7.5" stroke="white" stroke-width="1.2"/>
+        <line x1="9.5" y1="2.5" x2="9.5" y2="17.5" stroke="white" stroke-width="1.2"/>
+        <line x1="2.5" y1="12.5" x2="17.5" y2="12.5" stroke="white" stroke-width=".8"/>
+      </svg>
+      WebTable Enhancer
+    </a>
+    <div class="footer-links">
+      <a href="https://github.com/nakashun-mf/ex_webtable">GitHub</a>
+      <a href="index.html">ホーム</a>
+      <a href="https://github.com/nakashun-mf/ex_webtable/blob/main/docs/DESIGN.md">設計書</a>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>
