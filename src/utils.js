@@ -14,9 +14,18 @@ export function notify(text) {
   el.setAttribute('role', 'status');
   el.setAttribute('aria-live', 'polite');
   el.textContent = text;
-  el.addEventListener('click', () => el.remove());
   document.body.appendChild(el);
-  setTimeout(() => { if (el.isConnected) el.remove(); }, 3500);
+
+  // Shared remove: cleans up both the element and the keyboard listener.
+  const onKey = e => { if (e.key === 'Escape') remove(); };
+  const remove = () => {
+    if (el.isConnected) el.remove();
+    document.removeEventListener('keydown', onKey);
+  };
+
+  el.addEventListener('click', remove);
+  document.addEventListener('keydown', onKey);
+  setTimeout(remove, 3500);
 }
 
 /**
