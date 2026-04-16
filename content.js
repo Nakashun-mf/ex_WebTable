@@ -20,7 +20,9 @@ document.addEventListener('contextmenu', e => {
   }
   if (ctxTable) {
     e.preventDefault();
-    showMenu(e.clientX, e.clientY, ctxTable, e.target.closest('tbody tr') || null);
+    const headerCell = e.target.closest('thead th, thead td');
+    const ctxTh = (headerCell && ctxTable.contains(headerCell)) ? headerCell : null;
+    showMenu(e.clientX, e.clientY, ctxTable, e.target.closest('tbody tr') || null, ctxTh);
   }
 });
 
@@ -442,6 +444,227 @@ function remapColFilters(table, fromIdx, toIdx) {
   table._wteColFilters = newFilters;
 }
 
+/* ─── Column Visibility ─────────────────────────────────────────────────── */
+
+/** Returns the column index of a header cell (data-col if available, else DOM position). */
+function getThColIdx(table, thEl) {
+  if (thEl.dataset.col !== undefined) return parseInt(thEl.dataset.col);
+  return getHeaderCells(table).indexOf(thEl);
+}
+
+/** Returns the display label for column colIdx (strips UI chrome). */
+function getColLabel(table, colIdx) {
+  const th = getHeaderCells(table)[colIdx];
+  if (!th) return `列 ${colIdx + 1}`;
+  const clone = th.cloneNode(true);
+  clone.querySelectorAll('.wte-th-controls, .wte-col-resizer').forEach(n => n.remove());
+  return clone.textContent.trim() || `列 ${colIdx + 1}`;
+}
+
+/**
+ * Applies the current _wteHiddenCols set to the DOM:
+ * toggles .wte-col-hidden on every cell, and display:none on <col> elements.
+ */
+function applyColVisibility(table) {
+  const hidden = table._wteHiddenCols || new Set();
+  const allRows = [
+    ...(table.tHead ? Array.from(table.tHead.rows) : []),
+    ...getBodyRows(table)
+  ];
+  allRows.forEach(row => {
+    Array.from(row.cells).forEach((cell, i) => {
+      cell.classList.toggle('wte-col-hidden', hidden.has(i));
+    });
+  });
+  if (table._wteCols) {
+    table._wteCols.forEach((col, i) => {
+      col.style.display = hidden.has(i) ? 'none' : '';
+    });
+  }
+}
+
+function hideColumn(table, colIdx) {
+  if (!table._wteHiddenCols) table._wteHiddenCols = new Set();
+  const totalCols   = getHeaderCells(table).length;
+  const hiddenCount = table._wteHiddenCols.size;
+  if (hiddenCount >= totalCols - 1) {
+    notify('最低1列は表示が必要です。');
+    return;
+  }
+  if (table._wteLvColIdx !== undefined && colIdx === table._wteLvColIdx) {
+    notify('ツリーのレベル列は非表示にできません。');
+    return;
+  }
+  table._wteHiddenCols.add(colIdx);
+  applyColVisibility(table);
+}
+
+function showColumn(table, colIdx) {
+  if (!table._wteHiddenCols) return;
+  table._wteHiddenCols.delete(colIdx);
+  applyColVisibility(table);
+}
+
+/**
+ * When a column is moved from fromIdx to toIdx, update the keys in
+ * _wteHiddenCols so they match the new column positions.
+ */
+function remapHiddenCols(table, fromIdx, toIdx) {
+  if (!table._wteHiddenCols || table._wteHiddenCols.size === 0) return;
+  const newHidden = new Set();
+  for (const idx of table._wteHiddenCols) {
+    let newIdx = idx;
+    if (idx === fromIdx) {
+      newIdx = toIdx;
+    } else if (fromIdx < toIdx && idx > fromIdx && idx <= toIdx) {
+      newIdx = idx - 1;
+    } else if (fromIdx > toIdx && idx >= toIdx && idx < fromIdx) {
+      newIdx = idx + 1;
+    }
+    newHidden.add(newIdx);
+  }
+  table._wteHiddenCols = newHidden;
+}
+
+function hideColVisibilityPanel() {
+  document.getElementById('wte-col-vis-panel')?.remove();
+}
+
+function showColVisibilityPanel(table, clientX, clientY) {
+  hideColVisibilityPanel();
+
+  const headers = getHeaderCells(table);
+  if (!headers.length) return;
+
+  const panel = document.createElement('div');
+  panel.id        = 'wte-col-vis-panel';
+  panel.className = 'wte-col-vis-panel';
+
+  const title = document.createElement('div');
+  title.className   = 'wte-col-vis-title';
+  title.textContent = '列の表示 / 非表示';
+  panel.appendChild(title);
+
+  const list = document.createElement('div');
+  list.className = 'wte-col-vis-list';
+
+  const updateDisabledStates = () => {
+    const hiddenCount = table._wteHiddenCols?.size ?? 0;
+    const totalCols   = headers.length;
+    list.querySelectorAll('input[type="checkbox"]').forEach((cb, i) => {
+      if (table._wteLvColIdx !== undefined && i === table._wteLvColIdx) return;
+      cb.disabled = cb.checked && hiddenCount >= totalCols - 1;
+    });
+  };
+
+  headers.forEach((_, i) => {
+    const isHidden   = table._wteHiddenCols?.has(i) ?? false;
+    const isLevelCol = table._wteLvColIdx !== undefined && i === table._wteLvColIdx;
+
+    const label = document.createElement('label');
+    label.className = 'wte-col-vis-item' + (isLevelCol ? ' wte-col-vis-locked' : '');
+    if (isLevelCol) label.title = 'ツリーのレベル列は変更できません';
+
+    const cb     = document.createElement('input');
+    cb.type      = 'checkbox';
+    cb.checked   = !isHidden;
+    cb.disabled  = isLevelCol;
+
+    cb.addEventListener('change', () => {
+      if (cb.checked) {
+        showColumn(table, i);
+      } else {
+        const hiddenCount = table._wteHiddenCols?.size ?? 0;
+        const totalCols   = getHeaderCells(table).length;
+        if (hiddenCount >= totalCols - 1) {
+          notify('最低1列は表示が必要です。');
+          cb.checked = true;
+          return;
+        }
+        hideColumn(table, i);
+      }
+      updateDisabledStates();
+    });
+
+    label.append(cb, '\u00a0' + getColLabel(table, i));
+    list.appendChild(label);
+  });
+
+  panel.appendChild(list);
+  document.body.appendChild(panel);
+
+  // Position (viewport-aware, appears off-screen first for measurement)
+  panel.style.visibility = 'hidden';
+  panel.style.left = '-9999px';
+  panel.style.top  = '-9999px';
+
+  requestAnimationFrame(() => {
+    const pw = panel.offsetWidth;
+    const ph = panel.offsetHeight;
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    const x  = Math.max(8, Math.min(clientX, vw - pw - 8));
+    const y  = Math.max(8, Math.min(clientY, vh - ph - 8));
+    panel.style.left       = `${x}px`;
+    panel.style.top        = `${y}px`;
+    panel.style.visibility = '';
+  });
+
+  // Close on outside click (deferred so the opening click doesn't immediately close it)
+  const onOutsideClick = e => {
+    if (!panel.contains(e.target)) {
+      hideColVisibilityPanel();
+      document.removeEventListener('click', onOutsideClick, { capture: true });
+    }
+  };
+  setTimeout(() => document.addEventListener('click', onOutsideClick, { capture: true }), 0);
+}
+
+/* ─── CSV Export ────────────────────────────────────────────────────────── */
+
+function exportTableAsCSV(table) {
+  const hidden     = table._wteHiddenCols || new Set();
+  const headers    = getHeaderCells(table);
+  const visColIdxs = Array.from({ length: headers.length }, (_, i) => i).filter(i => !hidden.has(i));
+
+  if (!visColIdxs.length) { notify('表示中の列がありません。'); return; }
+
+  const cleanCell = cell => {
+    const c = cell.cloneNode(true);
+    c.querySelectorAll('.wte-arrow, .wte-btn, .wte-spc, .wte-th-controls, .wte-col-resizer, .wte-filter-btn').forEach(n => n.remove());
+    return c.textContent.trim();
+  };
+
+  const escCSV = s => {
+    if (s.includes(',') || s.includes('"') || s.includes('\n') || s.includes('\r')) {
+      return '"' + s.replace(/"/g, '""') + '"';
+    }
+    return s;
+  };
+
+  const lines = [];
+  lines.push(visColIdxs.map(i => escCSV(cleanCell(headers[i]))).join(','));
+
+  const visibleRows = getBodyRows(table).filter(r => !r.hidden);
+  visibleRows.forEach(row => {
+    lines.push(visColIdxs.map(i => {
+      const cell = row.cells[i] ?? document.createElement('td');
+      return escCSV(cleanCell(cell));
+    }).join(','));
+  });
+
+  const csv  = '\ufeff' + lines.join('\r\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+  const url  = URL.createObjectURL(blob);
+  const a    = Object.assign(document.createElement('a'), {
+    href: url, download: 'table_export.csv', style: 'display:none'
+  });
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 1000);
+  notify(`${visibleRows.length} 行を CSV でダウンロードしました ✓`);
+}
+
 /* ─── Column Resize ────────────────────────────────────────────────────── */
 
 function addColResizeHandles(table) {
@@ -598,6 +821,21 @@ function reorderColumn(table, fromIdx, toIdx) {
 
   // Remap column filter keys to match new column positions
   remapColFilters(table, fromIdx, toIdx);
+
+  // Remap hidden column indices
+  remapHiddenCols(table, fromIdx, toIdx);
+
+  // Remap Level column index (tree view)
+  if (table._wteLvColIdx !== undefined) {
+    const lv = table._wteLvColIdx;
+    if (lv === fromIdx) {
+      table._wteLvColIdx = toIdx;
+    } else if (fromIdx < toIdx && lv > fromIdx && lv <= toIdx) {
+      table._wteLvColIdx = lv - 1;
+    } else if (fromIdx > toIdx && lv >= toIdx && lv < fromIdx) {
+      table._wteLvColIdx = lv + 1;
+    }
+  }
 }
 
 function sortBy(table, col) {
@@ -702,6 +940,7 @@ function transformToTree(table) {
   const headCells = getHeaderCells(table);
   const lvIdx     = headCells.findIndex(c => LEVEL_RE.test(c.textContent.trim()));
   const rows      = getBodyRows(table);
+  if (lvIdx !== -1) table._wteLvColIdx = lvIdx;
 
   let nodes;
   let indentMode = false;
@@ -897,7 +1136,10 @@ function resetTable(table) {
   delete table._wteColFilters;
   delete table._wteSearchQuery;
   delete table._wteRefreshCount;
+  delete table._wteHiddenCols;
+  delete table._wteLvColIdx;
   hideColFilterPanel();
+  hideColVisibilityPanel();
 
   notify('元の表示に戻しました ✓');
 }
@@ -913,11 +1155,12 @@ document.addEventListener('keydown', e => {
   if (e.key === 'Escape') {
     hideMenu();
     hideColFilterPanel();
+    hideColVisibilityPanel();
     // 変換済みテーブルの行選択をすべて解除
     document.querySelectorAll('.wte-rich, .wte-tree').forEach(t => clearSelection(t));
   }
 });
-window.addEventListener('scroll', () => { hideMenu(); hideColFilterPanel(); }, { passive: true, capture: true });
+window.addEventListener('scroll', () => { hideMenu(); hideColFilterPanel(); hideColVisibilityPanel(); }, { passive: true, capture: true });
 
 function getOrCreateMenu() {
   let menu = document.getElementById('wte-ctx-menu');
@@ -936,7 +1179,7 @@ function hideMenu() {
   if (menu) menu.hidden = true;
 }
 
-function showMenu(clientX, clientY, table, row) {
+function showMenu(clientX, clientY, table, row, th = null) {
   const selectedRows = getSelectedRows(table);
 
   // Determine which rows actions should apply to
@@ -947,9 +1190,10 @@ function showMenu(clientX, clientY, table, row) {
     targets = selectedRows;
   }
 
-  const hasTargets = targets.size > 0;
-  const allHighlit = hasTargets && [...targets].every(r => r.classList.contains('wte-highlight'));
-  const isRich     = table.classList.contains('wte-rich');
+  const hasTargets    = targets.size > 0;
+  const allHighlit    = hasTargets && [...targets].every(r => r.classList.contains('wte-highlight'));
+  const isRich        = table.classList.contains('wte-rich');
+  const hasHiddenCols = (table._wteHiddenCols?.size ?? 0) > 0;
 
   const menu = getOrCreateMenu();
   menu.innerHTML = '';
@@ -963,17 +1207,41 @@ function showMenu(clientX, clientY, table, row) {
 
   menu.appendChild(makeSep());
 
-  // ② Copy
+  // ② Copy + CSV download
   menu.appendChild(makeMenuItem('選択した行をコピー', () => {
     copyRowsAsTSV([...targets], false, table); hideMenu();
   }, !hasTargets));
   menu.appendChild(makeMenuItem('ヘッダーと選択した行をコピー', () => {
     copyRowsAsTSV([...targets], true, table); hideMenu();
   }, !hasTargets));
+  menu.appendChild(makeMenuItem('CSV でダウンロード', () => {
+    exportTableAsCSV(table); hideMenu();
+  }));
 
   menu.appendChild(makeSep());
 
-  // ③ Text-wrap mode toggle (both rich and tree)
+  // ③ Column visibility
+  if (th !== null) {
+    const thColIdx    = getThColIdx(table, th);
+    const isLevelCol  = table._wteLvColIdx !== undefined && thColIdx === table._wteLvColIdx;
+    const totalCols   = getHeaderCells(table).length;
+    const hiddenCount = table._wteHiddenCols?.size ?? 0;
+    const isLastVisible = !table._wteHiddenCols?.has(thColIdx) && hiddenCount >= totalCols - 1;
+    menu.appendChild(makeMenuItem(
+      'この列を非表示',
+      () => { hideColumn(table, thColIdx); hideMenu(); },
+      isLevelCol || isLastVisible
+    ));
+  }
+  menu.appendChild(makeMenuItem(
+    '非表示列の管理',
+    () => { hideMenu(); showColVisibilityPanel(table, clientX, clientY); },
+    !hasHiddenCols
+  ));
+
+  menu.appendChild(makeSep());
+
+  // ④ Text-wrap mode toggle (both rich and tree)
   const isWrapMode = table.classList.contains('wte-wrap-mode');
   menu.appendChild(makeMenuItem(
     isWrapMode ? 'はみ出し表示にする（改行なし）' : '画面内に収める（改行あり）',
@@ -989,7 +1257,7 @@ function showMenu(clientX, clientY, table, row) {
 
   menu.appendChild(makeSep());
 
-  // ④ Switch view
+  // ⑤ Switch view
   menu.appendChild(makeMenuItem(
     isRich ? 'ツリー表示に変換' : 'リッチ表示に変換',
     () => {
@@ -1000,7 +1268,7 @@ function showMenu(clientX, clientY, table, row) {
     }
   ));
 
-  // ⑤ Tree expand / collapse (tree only)
+  // ⑥ Tree expand / collapse (tree only)
   if (!isRich && table._wteNodes) {
     const maxLv = Math.max(...table._wteNodes.map(n => n.level));
     menu.appendChild(makeSep());
@@ -1060,6 +1328,10 @@ function copyRowsAsTSV(rows, includeHeader, table) {
   const visibleRows = rows.filter(r => !r.hidden);
   if (!visibleRows.length) { notify('コピーする行がありません。'); return; }
 
+  const hidden      = table._wteHiddenCols || new Set();
+  const headers     = getHeaderCells(table);
+  const visColIdxs  = Array.from({ length: headers.length }, (_, i) => i).filter(i => !hidden.has(i));
+
   const esc  = s => s.replace(/[\t\n]/g, ' ');
   const text = cell => {
     const c = cell.cloneNode(true);
@@ -1068,8 +1340,8 @@ function copyRowsAsTSV(rows, includeHeader, table) {
   };
 
   const lines = [];
-  if (includeHeader) lines.push(getHeaderCells(table).map(text).join('\t'));
-  visibleRows.forEach(r => lines.push(Array.from(r.cells).map(text).join('\t')));
+  if (includeHeader) lines.push(visColIdxs.map(i => text(headers[i])).join('\t'));
+  visibleRows.forEach(r => lines.push(visColIdxs.map(i => text(r.cells[i] ?? document.createElement('td'))).join('\t')));
 
   const tsvText = lines.join('\n');
   const count   = visibleRows.length;
