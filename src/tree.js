@@ -98,7 +98,7 @@ export function transformToTree(table) {
   const searchInput = document.createElement('input');
   searchInput.type = 'search';
   searchInput.className = 'wte-search';
-  searchInput.placeholder = 'フィルター...';
+  searchInput.placeholder = 'フィルター…';
   searchInput.setAttribute('aria-label', 'ツリーをフィルター');
   toolbar.appendChild(searchInput);
   wrap.appendChild(toolbar);
