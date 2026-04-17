@@ -34,6 +34,19 @@ jobs:
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "Packaging version: $VERSION"
 
+      # ── Sync manifest.json version for tag builds ───────────────────────────
+      - name: Sync manifest.json version
+        if: github.event_name == 'push' && github.ref_type == 'tag'
+        run: |
+          VERSION="${{ steps.ver.outputs.version }}"
+          node -e "
+            const fs = require('fs');
+            const m = JSON.parse(fs.readFileSync('manifest.json', 'utf8'));
+            m.version = '$VERSION';
+            fs.writeFileSync('manifest.json', JSON.stringify(m, null, 2) + '\n');
+          "
+          echo "Updated manifest.json to version $VERSION"
+
       # ── Setup Node.js ───────────────────────────────────────────────────────
       - name: Setup Node.js
         uses: actions/setup-node@v5
