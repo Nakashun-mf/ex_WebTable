@@ -86,20 +86,22 @@ export function showMenu(clientX, clientY, table, row, th = null, cell = null) {
     () => { copyText(cleanCell(cell), 'セルの内容をコピーしました ✓'); hideMenu(); },
     cell === null
   ));
-  menu.appendChild(makeMenuItem(
-    '選択したテキストをコピー',
-    () => { copyText(selectedText); hideMenu(); },
-    !selectedText
-  ));
   menu.appendChild(makeMenuItem('選択した行をコピー', () => {
     copyRowsAsTSV([...targets], false, table); hideMenu();
   }, !hasTargets));
-  menu.appendChild(makeMenuItem('ヘッダーと選択した行をコピー', () => {
-    copyRowsAsTSV([...targets], true, table); hideMenu();
-  }, !hasTargets));
-  menu.appendChild(makeMenuItem('CSV でダウンロード', () => {
-    exportTableAsCSV(table); hideMenu();
-  }));
+  menu.appendChild(makeSubMenuSection('その他のコピー・出力', [
+    makeMenuItem(
+      '選択したテキストをコピー',
+      () => { copyText(selectedText); hideMenu(); },
+      !selectedText
+    ),
+    makeMenuItem('ヘッダーと選択した行をコピー', () => {
+      copyRowsAsTSV([...targets], true, table); hideMenu();
+    }, !hasTargets),
+    makeMenuItem('CSV でダウンロード', () => {
+      exportTableAsCSV(table); hideMenu();
+    }),
+  ]));
 
   menu.appendChild(makeSep());
 
@@ -169,12 +171,16 @@ export function showMenu(clientX, clientY, table, row, th = null, cell = null) {
     menu.appendChild(makeSep());
     menu.appendChild(makeMenuItem('全展開', () => { expandAll(table); hideMenu(); }));
     menu.appendChild(makeMenuItem('全折りたたみ', () => { collapseAll(table); hideMenu(); }));
-    for (let lv = 1; lv < maxLv; lv++) {
-      const level = lv;
-      menu.appendChild(makeMenuItem(
-        `レベル${level}まで展開`,
-        () => { expandToLevel(table, level); hideMenu(); }
-      ));
+    if (maxLv > 1) {
+      const levelItems = [];
+      for (let lv = 1; lv < maxLv; lv++) {
+        const level = lv;
+        levelItems.push(makeMenuItem(
+          `レベル${level}まで展開`,
+          () => { expandToLevel(table, level); hideMenu(); }
+        ));
+      }
+      menu.appendChild(makeSubMenuSection('レベル指定で展開', levelItems));
     }
   }
 
@@ -192,6 +198,19 @@ function makeMenuItem(label, onClick, disabled = false) {
   el.className = disabled ? 'wte-ctx-item wte-ctx-disabled' : 'wte-ctx-item';
   el.textContent = label;
   if (!disabled) el.addEventListener('click', e => { e.stopPropagation(); onClick(); });
+  return el;
+}
+
+function makeSubMenuSection(label, items) {
+  const el = document.createElement('div');
+  el.className = 'wte-ctx-item wte-ctx-submenu';
+  el.appendChild(document.createTextNode(label));
+
+  const panel = document.createElement('div');
+  panel.className = 'wte-ctx-submenu-panel';
+  items.forEach(item => panel.appendChild(item));
+  el.appendChild(panel);
+
   return el;
 }
 
