@@ -16,7 +16,7 @@ permissions:
 
 jobs:
   tag:
-    name: Bump patch version and tag
+    name: Determine SemVer bump and tag
     runs-on: ubuntu-latest
     # bot がバージョンを上げた際の無限ループを防ぐ
     if: github.actor != 'github-actions[bot]'
@@ -28,13 +28,41 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           fetch-depth: 0
 
-      - name: Bump patch version in manifest.json
+      - name: Determine SemVer bump from commit messages
         id: bump
         run: |
-          CURRENT=$(node -pe "require('./manifest.json').version")
+          # 最新タグを取得（なければ v0.0.0 をベースにする）
+          LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
+          CURRENT=${LAST_TAG#v}
+          echo "Last tag: $LAST_TAG  Current version: $CURRENT"
+
+          # 最新タグ以降のコミットメッセージを取得
+          COMMITS=$(git log "${LAST_TAG}..HEAD" --pretty=format:"%s" 2>/dev/null)
+          echo "Commits since $LAST_TAG:"
+          echo "$COMMITS"
+
+          # Conventional Commits に基づいてバンプ種別を決定
+          # BREAKING CHANGE または '!:' → MAJOR
+          # feat: / feat(...): → MINOR
+          # その他 → PATCH
+          if echo "$COMMITS" | grep -qE "(BREAKING CHANGE|!:)"; then
+            BUMP="major"
+          elif echo "$COMMITS" | grep -qE "^feat(\([^)]*\))?:"; then
+            BUMP="minor"
+          else
+            BUMP="patch"
+          fi
+          echo "Bump type: $BUMP"
+
           IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT"
-          PATCH=$((PATCH + 1))
+          case "$BUMP" in
+            major) MAJOR=$((MAJOR + 1)); MINOR=0; PATCH=0 ;;
+            minor) MINOR=$((MINOR + 1)); PATCH=0 ;;
+            patch) PATCH=$((PATCH + 1)) ;;
+          esac
+
           NEW_VERSION="$MAJOR.$MINOR.$PATCH"
+
           node -e "
             const fs = require('fs');
             const m = JSON.parse(fs.readFileSync('manifest.json', 'utf8'));
@@ -42,7 +70,8 @@ jobs:
             fs.writeFileSync('manifest.json', JSON.stringify(m, null, 2) + '\n');
           "
           echo "version=$NEW_VERSION" >> "$GITHUB_OUTPUT"
-          echo "Bumped: $CURRENT -> $NEW_VERSION"
+          echo "bump=$BUMP" >> "$GITHUB_OUTPUT"
+          echo "Bumped: $CURRENT -> $NEW_VERSION ($BUMP)"
 
       - name: Push tag on current commit
         run: |
@@ -63,7 +92,7 @@ jobs:
         run: |
           gh pr create \
             --title "chore: bump version to v${{ steps.bump.outputs.version }}" \
-            --body "Automated version bump to v${{ steps.bump.outputs.version }}" \
+            --body "Automated version bump to v${{ steps.bump.outputs.version }} (${{ steps.bump.outputs.bump }} bump)" \
             --base main \
             --head "chore/bump-version-v${{ steps.bump.outputs.version }}"
         env:
