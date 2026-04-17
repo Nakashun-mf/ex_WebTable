@@ -588,7 +588,7 @@
     const searchInput = document.createElement("input");
     searchInput.type = "search";
     searchInput.className = "wte-search";
-    searchInput.placeholder = "\u30D5\u30A3\u30EB\u30BF\u30FC...";
+    searchInput.placeholder = "\u30D5\u30A3\u30EB\u30BF\u30FC\u2026";
     searchInput.setAttribute("aria-label", "\u30C4\u30EA\u30FC\u3092\u30D5\u30A3\u30EB\u30BF\u30FC");
     toolbar.appendChild(searchInput);
     wrap.appendChild(toolbar);
@@ -1399,7 +1399,7 @@
         expandAll(table);
         hideMenu();
       }));
-      menu.appendChild(makeMenuItem("\u5168\u6298\u7573\u307F", () => {
+      menu.appendChild(makeMenuItem("\u5168\u6298\u308A\u305F\u305F\u307F", () => {
         collapseAll(table);
         hideMenu();
       }));

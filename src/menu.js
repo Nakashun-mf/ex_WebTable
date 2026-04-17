@@ -168,7 +168,7 @@ export function showMenu(clientX, clientY, table, row, th = null, cell = null) {
     const maxLv = Math.max(...table._wteNodes.map(n => n.level));
     menu.appendChild(makeSep());
     menu.appendChild(makeMenuItem('全展開', () => { expandAll(table); hideMenu(); }));
-    menu.appendChild(makeMenuItem('全折畳み', () => { collapseAll(table); hideMenu(); }));
+    menu.appendChild(makeMenuItem('全折りたたみ', () => { collapseAll(table); hideMenu(); }));
     for (let lv = 1; lv < maxLv; lv++) {
       const level = lv;
       menu.appendChild(makeMenuItem(
