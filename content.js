@@ -518,6 +518,7 @@
   var tree_exports = {};
   __export(tree_exports, {
     LEVEL_RE: () => LEVEL_RE,
+    applyTreeFilter: () => applyTreeFilter,
     applyVisibility: () => applyVisibility,
     collapseAll: () => collapseAll,
     expandAll: () => expandAll,

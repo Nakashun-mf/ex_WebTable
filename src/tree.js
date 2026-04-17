@@ -228,7 +228,7 @@ export function applyVisibility(children, show) {
   });
 }
 
-function applyTreeFilter(table, query) {
+export function applyTreeFilter(table, query) {
   const nodes = table._wteNodes;
   if (!nodes) return;
   const q = query.trim().toLowerCase();

@@ -7,6 +7,7 @@ import {
   collapseAll,
   expandToLevel,
   toggleNode,
+  applyTreeFilter,
 } from '../src/tree.js';
 
 // ── LEVEL_RE ──────────────────────────────────────────────────────────────────
@@ -217,5 +218,111 @@ describe('toggleNode', () => {
     expect(parent.open).toBe(true);
     expect(btn.textContent).toBe('−');
     expect(child.el.hidden).toBe(false);
+  });
+});
+
+// ── applyTreeFilter ───────────────────────────────────────────────────────────
+
+function makeFilterRow(text) {
+  const tr = document.createElement('tr');
+  const td = document.createElement('td');
+  td.textContent = text;
+  tr.appendChild(td);
+  tr.hidden = false;
+  return tr;
+}
+
+function makeFilterNode(text, level = 1, children = [], open = true) {
+  const node = { el: makeFilterRow(text), level, children, parent: null, open };
+  children.forEach(c => { c.parent = node; });
+  return node;
+}
+
+function makeFilterTable(nodes) {
+  const table = document.createElement('table');
+  table._wteNodes = nodes;
+  return table;
+}
+
+describe('applyTreeFilter', () => {
+  it('クエリ一致: 該当ノードが表示される', () => {
+    const root  = makeFilterNode('Root');
+    const child = makeFilterNode('Apple', 2, [], true);
+    child.parent = root;
+    root.children.push(child);
+    const table = makeFilterTable([root, child]);
+
+    applyTreeFilter(table, 'Apple');
+
+    expect(root.el.hidden).toBe(false);   // 祖先として表示
+    expect(child.el.hidden).toBe(false);  // マッチ
+  });
+
+  it('クエリ一致: 非マッチノードは非表示', () => {
+    const root   = makeFilterNode('Root');
+    const childA = makeFilterNode('Apple', 2);
+    const childB = makeFilterNode('Banana', 2);
+    childA.parent = root;
+    childB.parent = root;
+    root.children.push(childA, childB);
+    const table = makeFilterTable([root, childA, childB]);
+
+    applyTreeFilter(table, 'Apple');
+
+    expect(childA.el.hidden).toBe(false);
+    expect(childB.el.hidden).toBe(true);
+  });
+
+  it('マッチなし: 全ノードが非表示', () => {
+    const root  = makeFilterNode('Root');
+    const child = makeFilterNode('Apple', 2);
+    child.parent = root;
+    root.children.push(child);
+    const table = makeFilterTable([root, child]);
+
+    applyTreeFilter(table, 'ZZZZ');
+
+    expect(root.el.hidden).toBe(true);
+    expect(child.el.hidden).toBe(true);
+  });
+
+  it('クリア時: open=true の親の子は表示される', () => {
+    const root  = makeFilterNode('Root');
+    const child = makeFilterNode('Apple', 2);
+    child.parent = root;
+    root.children.push(child);
+    const table = makeFilterTable([root, child]);
+
+    applyTreeFilter(table, 'Apple');   // フィルター適用
+    applyTreeFilter(table, '');        // クリア
+
+    expect(root.el.hidden).toBe(false);
+    expect(child.el.hidden).toBe(false); // open=true なので表示
+  });
+
+  it('クリア時: open=false の親の子は非表示に戻る', () => {
+    const root  = makeFilterNode('Root');
+    const child = makeFilterNode('Apple', 2);
+    child.parent = root;
+    root.children.push(child);
+    root.open = false;
+    const table = makeFilterTable([root, child]);
+
+    applyTreeFilter(table, 'Apple');   // フィルター適用で child 表示
+    applyTreeFilter(table, '');        // クリア
+
+    expect(root.el.hidden).toBe(false);   // root は常に表示
+    expect(child.el.hidden).toBe(true);   // 親が閉じているので非表示
+  });
+
+  it('大文字小文字を区別しない', () => {
+    const node  = makeFilterNode('Apple');
+    const table = makeFilterTable([node]);
+
+    applyTreeFilter(table, 'apple');
+    expect(node.el.hidden).toBe(false);
+
+    applyTreeFilter(table, 'APPLE');
+    expect(node.el.hidden).toBe(false);
   });
 });
