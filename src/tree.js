@@ -88,10 +88,21 @@ export function transformToTree(table) {
 
   table.classList.add('wte-tree');
 
-  // Wrap in scrollable container
+  // Wrap in scrollable container with toolbar
   const wrap = document.createElement('div');
   wrap.className = 'wte-tree-wrap';
   table.before(wrap);
+
+  const toolbar = document.createElement('div');
+  toolbar.className = 'wte-toolbar';
+  const searchInput = document.createElement('input');
+  searchInput.type = 'search';
+  searchInput.className = 'wte-search';
+  searchInput.placeholder = 'フィルター...';
+  searchInput.setAttribute('aria-label', 'ツリーをフィルター');
+  toolbar.appendChild(searchInput);
+  wrap.appendChild(toolbar);
+
   wrap.appendChild(table);
 
   // Stack-based O(n) parent-child linking
@@ -139,6 +150,13 @@ export function transformToTree(table) {
       spc.className = 'wte-spc';
       cell.insertBefore(spc, cell.firstChild);
     }
+  });
+
+  // Wire up filter input
+  let filterTimer;
+  searchInput.addEventListener('input', () => {
+    clearTimeout(filterTimer);
+    filterTimer = setTimeout(() => applyTreeFilter(table, searchInput.value), 150);
   });
 
   setupTableInteraction(table);
@@ -208,4 +226,42 @@ export function applyVisibility(children, show) {
     // Recurse: only reveal grandchildren if this child was left open
     applyVisibility(c.children, show && c.open);
   });
+}
+
+export function applyTreeFilter(table, query) {
+  const nodes = table._wteNodes;
+  if (!nodes) return;
+  const q = query.trim().toLowerCase();
+
+  if (!q) {
+    // Restore expand/collapse state: a node is visible only if all ancestors are open
+    nodes.forEach(node => {
+      node.el.hidden = hasClosedAncestor(node);
+    });
+    return;
+  }
+
+  // Find nodes whose row text matches the query
+  const matched = new Set();
+  nodes.forEach(node => {
+    if (node.el.textContent.toLowerCase().includes(q)) matched.add(node);
+  });
+
+  // Also show all ancestors of matched nodes so the tree is navigable
+  const toShow = new Set(matched);
+  matched.forEach(node => {
+    let p = node.parent;
+    while (p) { toShow.add(p); p = p.parent; }
+  });
+
+  nodes.forEach(node => { node.el.hidden = !toShow.has(node); });
+}
+
+function hasClosedAncestor(node) {
+  let p = node.parent;
+  while (p) {
+    if (!p.open) return true;
+    p = p.parent;
+  }
+  return false;
 }

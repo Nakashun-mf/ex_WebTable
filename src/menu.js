@@ -1,16 +1,17 @@
 // Custom in-page context menu for transformed tables.
 
-import { getHeaderCells, notify, cleanCell, positionPopup } from './utils.js';
+import { getHeaderCells, cleanCell, positionPopup } from './utils.js';
 import { hideColFilterPanel } from './filters.js';
 import {
   getThColIdx, hideColumn, hideColVisibilityPanel,
-  showColVisibilityPanel, getVisibleColIndices
+  showColVisibilityPanel
 } from './colvis.js';
 import { exportTableAsCSV } from './csv.js';
 import { transformToRich } from './rich.js';
 import { transformToTree, expandAll, collapseAll, expandToLevel } from './tree.js';
 import { clearSelection } from './interaction.js';
 import { resetTable } from './reset.js';
+import { copyRowsAsTSV, copyText } from './clipboard.js';
 
 // ── Close menu on outside click / Escape / scroll ─────────────────────────
 document.addEventListener('click', e => {
@@ -51,8 +52,9 @@ export function hideMenu() {
   if (menu) menu.hidden = true;
 }
 
-export function showMenu(clientX, clientY, table, row, th = null) {
-  const selectedRows = getSelectedRows(table);
+export function showMenu(clientX, clientY, table, row, th = null, cell = null) {
+  const selectedRows  = getSelectedRows(table);
+  const selectedText  = window.getSelection()?.toString() ?? '';
 
   // Determine which rows actions should apply to
   let targets;
@@ -65,7 +67,6 @@ export function showMenu(clientX, clientY, table, row, th = null) {
   const hasTargets    = targets.size > 0;
   const allHighlit    = hasTargets && [...targets].every(r => r.classList.contains('wte-highlight'));
   const isRich        = table.classList.contains('wte-rich');
-  const hasHiddenCols = (table._wteHiddenCols?.size ?? 0) > 0;
 
   const menu = getOrCreateMenu();
   menu.innerHTML = '';
@@ -80,6 +81,16 @@ export function showMenu(clientX, clientY, table, row, th = null) {
   menu.appendChild(makeSep());
 
   // ② Copy + CSV download
+  menu.appendChild(makeMenuItem(
+    'セルの内容をコピー',
+    () => { copyText(cleanCell(cell), 'セルの内容をコピーしました ✓'); hideMenu(); },
+    cell === null
+  ));
+  menu.appendChild(makeMenuItem(
+    '選択したテキストをコピー',
+    () => { copyText(selectedText); hideMenu(); },
+    !selectedText
+  ));
   menu.appendChild(makeMenuItem('選択した行をコピー', () => {
     copyRowsAsTSV([...targets], false, table); hideMenu();
   }, !hasTargets));
@@ -108,7 +119,7 @@ export function showMenu(clientX, clientY, table, row, th = null) {
   menu.appendChild(makeMenuItem(
     '非表示列の管理',
     () => { hideMenu(); showColVisibilityPanel(table, clientX, clientY); },
-    !hasHiddenCols
+    false
   ));
 
   menu.appendChild(makeSep());
@@ -192,55 +203,4 @@ function makeSep() {
 
 function getSelectedRows(table) {
   return new Set(table.querySelectorAll('tbody tr.wte-selected'));
-}
-
-function copyRowsAsTSV(rows, includeHeader, table) {
-  const visibleRows = rows.filter(r => !r.hidden);
-  if (!visibleRows.length) { notify('コピーする行がありません。'); return; }
-
-  const headers    = getHeaderCells(table);
-  const visColIdxs = getVisibleColIndices(table);
-
-  const esc  = s => s.replace(/[\t\n]/g, ' ');
-  const text = cell => esc(cleanCell(cell));
-
-  const emptyCell = document.createElement('td');
-  const lines = [];
-  if (includeHeader) lines.push(visColIdxs.map(i => text(headers[i])).join('\t'));
-  visibleRows.forEach(r => lines.push(visColIdxs.map(i => text(r.cells[i] ?? emptyCell)).join('\t')));
-
-  const tsvText = lines.join('\n');
-  const count   = visibleRows.length;
-
-  if (navigator.clipboard?.writeText) {
-    navigator.clipboard.writeText(tsvText)
-      .then(() => notify(`${count} 行をコピーしました ✓`))
-      .catch(() => fallbackCopy(tsvText, count));
-  } else {
-    fallbackCopy(tsvText, count);
-  }
-}
-
-/** HTTP ページなど clipboard API が使えない環境向けフォールバック */
-function fallbackCopy(text, rowCount) {
-  const ta = document.createElement('textarea');
-  ta.value = text;
-  ta.style.cssText = 'position:fixed;opacity:0;top:0;left:0;width:1px;height:1px';
-  document.body.appendChild(ta);
-  ta.focus();
-  ta.select();
-  try {
-    const ok = document.execCommand('copy');
-    notify(ok ? `${rowCount} 行をコピーしました ✓` : copyFailMessage());
-  } catch {
-    notify(copyFailMessage());
-  } finally {
-    ta.remove();
-  }
-}
-
-function copyFailMessage() {
-  return location.protocol === 'http:'
-    ? 'コピーに失敗しました（HTTPページではクリップボードへのアクセスが制限されています）。CSVダウンロードをご利用ください。'
-    : 'コピーに失敗しました。';
 }
