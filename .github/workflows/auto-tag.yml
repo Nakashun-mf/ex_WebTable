@@ -8,6 +8,7 @@ on:
       - "docs/**"
       - ".github/**"
       - "manifest.json"
+  workflow_dispatch:
 
 permissions:
   contents: write
