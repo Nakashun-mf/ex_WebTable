@@ -396,10 +396,79 @@
     }
   });
 
+  // src/clipboard.js
+  function copyText(text, successMsg = "\u30B3\u30D4\u30FC\u3057\u307E\u3057\u305F \u2713") {
+    if (navigator.clipboard?.writeText) {
+      navigator.clipboard.writeText(text).then(() => notify(successMsg)).catch(() => fallbackCopy(text, successMsg));
+    } else {
+      fallbackCopy(text, successMsg);
+    }
+  }
+  function copyRowsAsTSV(rows, includeHeader, table) {
+    const visibleRows = rows.filter((r) => !r.hidden);
+    if (!visibleRows.length) {
+      notify("\u30B3\u30D4\u30FC\u3059\u308B\u884C\u304C\u3042\u308A\u307E\u305B\u3093\u3002");
+      return;
+    }
+    const headers = getHeaderCells(table);
+    const visColIdxs = getVisibleColIndices(table);
+    const esc = (s) => s.replace(/[\t\n]/g, " ");
+    const text = (cell) => esc(cleanCell(cell));
+    const emptyCell = document.createElement("td");
+    const lines = [];
+    if (includeHeader) lines.push(visColIdxs.map((i) => text(headers[i])).join("	"));
+    visibleRows.forEach((r) => lines.push(visColIdxs.map((i) => text(r.cells[i] ?? emptyCell)).join("	")));
+    copyText(lines.join("\n"), `${visibleRows.length} \u884C\u3092\u30B3\u30D4\u30FC\u3057\u307E\u3057\u305F \u2713`);
+  }
+  function fallbackCopy(text, successMsg) {
+    const ta = document.createElement("textarea");
+    ta.value = text;
+    ta.style.cssText = "position:fixed;opacity:0;top:0;left:0;width:1px;height:1px";
+    document.body.appendChild(ta);
+    ta.focus();
+    ta.select();
+    try {
+      const ok = document.execCommand("copy");
+      notify(ok ? successMsg : failMsg());
+    } catch {
+      notify(failMsg());
+    } finally {
+      ta.remove();
+    }
+  }
+  function failMsg() {
+    return location.protocol === "http:" ? "\u30B3\u30D4\u30FC\u306B\u5931\u6557\u3057\u307E\u3057\u305F\uFF08HTTP\u30DA\u30FC\u30B8\u3067\u306F\u30AF\u30EA\u30C3\u30D7\u30DC\u30FC\u30C9\u3078\u306E\u30A2\u30AF\u30BB\u30B9\u304C\u5236\u9650\u3055\u308C\u3066\u3044\u307E\u3059\uFF09\u3002CSV\u30C0\u30A6\u30F3\u30ED\u30FC\u30C9\u3092\u3054\u5229\u7528\u304F\u3060\u3055\u3044\u3002" : "\u30B3\u30D4\u30FC\u306B\u5931\u6557\u3057\u307E\u3057\u305F\u3002";
+  }
+  var init_clipboard = __esm({
+    "src/clipboard.js"() {
+      init_utils();
+      init_colvis();
+    }
+  });
+
   // src/interaction.js
+  function ensureCtrlCHandler() {
+    if (ctrlCHandlerAdded) return;
+    ctrlCHandlerAdded = true;
+    document.addEventListener("keydown", (e) => {
+      if (!(e.ctrlKey || e.metaKey) || e.key !== "c") return;
+      const tag = document.activeElement?.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA" || document.activeElement?.isContentEditable) return;
+      const tables = document.querySelectorAll(".wte-rich, .wte-tree");
+      for (const table of tables) {
+        const selected = [...table.querySelectorAll("tbody tr.wte-selected")];
+        if (selected.length > 0) {
+          e.preventDefault();
+          copyRowsAsTSV(selected, false, table);
+          return;
+        }
+      }
+    });
+  }
   function setupTableInteraction(table) {
     if (table._wteInteractionSetup) return;
     table._wteInteractionSetup = true;
+    ensureCtrlCHandler();
     table.addEventListener("click", (e) => {
       if (!isTransformed(table)) return;
       if (e.target.classList.contains("wte-btn")) return;
@@ -436,9 +505,12 @@
     const [from, to] = startIdx <= endIdx ? [startIdx, endIdx] : [endIdx, startIdx];
     rows.slice(from, to + 1).forEach((r) => r.classList.add("wte-selected"));
   }
+  var ctrlCHandlerAdded;
   var init_interaction = __esm({
     "src/interaction.js"() {
       init_utils();
+      init_clipboard();
+      ctrlCHandlerAdded = false;
     }
   });
 
@@ -510,6 +582,15 @@
     const wrap = document.createElement("div");
     wrap.className = "wte-tree-wrap";
     table.before(wrap);
+    const toolbar = document.createElement("div");
+    toolbar.className = "wte-toolbar";
+    const searchInput = document.createElement("input");
+    searchInput.type = "search";
+    searchInput.className = "wte-search";
+    searchInput.placeholder = "\u30D5\u30A3\u30EB\u30BF\u30FC...";
+    searchInput.setAttribute("aria-label", "\u30C4\u30EA\u30FC\u3092\u30D5\u30A3\u30EB\u30BF\u30FC");
+    toolbar.appendChild(searchInput);
+    wrap.appendChild(toolbar);
     wrap.appendChild(table);
     const stack = [];
     nodes.forEach((node) => {
@@ -548,6 +629,11 @@
         spc.className = "wte-spc";
         cell.insertBefore(spc, cell.firstChild);
       }
+    });
+    let filterTimer;
+    searchInput.addEventListener("input", () => {
+      clearTimeout(filterTimer);
+      filterTimer = setTimeout(() => applyTreeFilter(table, searchInput.value), 150);
     });
     setupTableInteraction(table);
     addColResizeHandles(table);
@@ -606,6 +692,40 @@
       c.el.hidden = !show;
       applyVisibility(c.children, show && c.open);
     });
+  }
+  function applyTreeFilter(table, query) {
+    const nodes = table._wteNodes;
+    if (!nodes) return;
+    const q = query.trim().toLowerCase();
+    if (!q) {
+      nodes.forEach((node) => {
+        node.el.hidden = hasClosedAncestor(node);
+      });
+      return;
+    }
+    const matched = /* @__PURE__ */ new Set();
+    nodes.forEach((node) => {
+      if (node.el.textContent.toLowerCase().includes(q)) matched.add(node);
+    });
+    const toShow = new Set(matched);
+    matched.forEach((node) => {
+      let p = node.parent;
+      while (p) {
+        toShow.add(p);
+        p = p.parent;
+      }
+    });
+    nodes.forEach((node) => {
+      node.el.hidden = !toShow.has(node);
+    });
+  }
+  function hasClosedAncestor(node) {
+    let p = node.parent;
+    while (p) {
+      if (!p.open) return true;
+      p = p.parent;
+    }
+    return false;
   }
   var LEVEL_RE;
   var init_tree = __esm({
@@ -1124,6 +1244,7 @@
   init_rich();
   init_tree();
   init_interaction();
+  init_clipboard();
   document.addEventListener("click", (e) => {
     const menu = document.getElementById("wte-ctx-menu");
     if (menu && !menu.hidden && !menu.contains(e.target)) hideMenu();
@@ -1158,8 +1279,9 @@
     const menu = document.getElementById("wte-ctx-menu");
     if (menu) menu.hidden = true;
   }
-  function showMenu(clientX, clientY, table, row, th = null) {
+  function showMenu(clientX, clientY, table, row, th = null, cell = null) {
     const selectedRows = getSelectedRows(table);
+    const selectedText = window.getSelection()?.toString() ?? "";
     let targets;
     if (row) {
       targets = selectedRows.has(row) ? selectedRows : /* @__PURE__ */ new Set([row]);
@@ -1169,7 +1291,6 @@
     const hasTargets = targets.size > 0;
     const allHighlit = hasTargets && [...targets].every((r) => r.classList.contains("wte-highlight"));
     const isRich = table.classList.contains("wte-rich");
-    const hasHiddenCols = (table._wteHiddenCols?.size ?? 0) > 0;
     const menu = getOrCreateMenu();
     menu.innerHTML = "";
     menu.appendChild(makeMenuItem(
@@ -1181,6 +1302,22 @@
       !hasTargets
     ));
     menu.appendChild(makeSep());
+    menu.appendChild(makeMenuItem(
+      "\u30BB\u30EB\u306E\u5185\u5BB9\u3092\u30B3\u30D4\u30FC",
+      () => {
+        copyText(cleanCell(cell), "\u30BB\u30EB\u306E\u5185\u5BB9\u3092\u30B3\u30D4\u30FC\u3057\u307E\u3057\u305F \u2713");
+        hideMenu();
+      },
+      cell === null
+    ));
+    menu.appendChild(makeMenuItem(
+      "\u9078\u629E\u3057\u305F\u30C6\u30AD\u30B9\u30C8\u3092\u30B3\u30D4\u30FC",
+      () => {
+        copyText(selectedText);
+        hideMenu();
+      },
+      !selectedText
+    ));
     menu.appendChild(makeMenuItem("\u9078\u629E\u3057\u305F\u884C\u3092\u30B3\u30D4\u30FC", () => {
       copyRowsAsTSV([...targets], false, table);
       hideMenu();
@@ -1215,7 +1352,7 @@
         hideMenu();
         showColVisibilityPanel(table, clientX, clientY);
       },
-      !hasHiddenCols
+      false
     ));
     menu.appendChild(makeSep());
     const isWrapMode = table.classList.contains("wte-wrap-mode");
@@ -1302,47 +1439,6 @@
   function getSelectedRows(table) {
     return new Set(table.querySelectorAll("tbody tr.wte-selected"));
   }
-  function copyRowsAsTSV(rows, includeHeader, table) {
-    const visibleRows = rows.filter((r) => !r.hidden);
-    if (!visibleRows.length) {
-      notify("\u30B3\u30D4\u30FC\u3059\u308B\u884C\u304C\u3042\u308A\u307E\u305B\u3093\u3002");
-      return;
-    }
-    const headers = getHeaderCells(table);
-    const visColIdxs = getVisibleColIndices(table);
-    const esc = (s) => s.replace(/[\t\n]/g, " ");
-    const text = (cell) => esc(cleanCell(cell));
-    const emptyCell = document.createElement("td");
-    const lines = [];
-    if (includeHeader) lines.push(visColIdxs.map((i) => text(headers[i])).join("	"));
-    visibleRows.forEach((r) => lines.push(visColIdxs.map((i) => text(r.cells[i] ?? emptyCell)).join("	")));
-    const tsvText = lines.join("\n");
-    const count = visibleRows.length;
-    if (navigator.clipboard?.writeText) {
-      navigator.clipboard.writeText(tsvText).then(() => notify(`${count} \u884C\u3092\u30B3\u30D4\u30FC\u3057\u307E\u3057\u305F \u2713`)).catch(() => fallbackCopy(tsvText, count));
-    } else {
-      fallbackCopy(tsvText, count);
-    }
-  }
-  function fallbackCopy(text, rowCount) {
-    const ta = document.createElement("textarea");
-    ta.value = text;
-    ta.style.cssText = "position:fixed;opacity:0;top:0;left:0;width:1px;height:1px";
-    document.body.appendChild(ta);
-    ta.focus();
-    ta.select();
-    try {
-      const ok = document.execCommand("copy");
-      notify(ok ? `${rowCount} \u884C\u3092\u30B3\u30D4\u30FC\u3057\u307E\u3057\u305F \u2713` : copyFailMessage());
-    } catch {
-      notify(copyFailMessage());
-    } finally {
-      ta.remove();
-    }
-  }
-  function copyFailMessage() {
-    return location.protocol === "http:" ? "\u30B3\u30D4\u30FC\u306B\u5931\u6557\u3057\u307E\u3057\u305F\uFF08HTTP\u30DA\u30FC\u30B8\u3067\u306F\u30AF\u30EA\u30C3\u30D7\u30DC\u30FC\u30C9\u3078\u306E\u30A2\u30AF\u30BB\u30B9\u304C\u5236\u9650\u3055\u308C\u3066\u3044\u307E\u3059\uFF09\u3002CSV\u30C0\u30A6\u30F3\u30ED\u30FC\u30C9\u3092\u3054\u5229\u7528\u304F\u3060\u3055\u3044\u3002" : "\u30B3\u30D4\u30FC\u306B\u5931\u6557\u3057\u307E\u3057\u305F\u3002";
-  }
 
   // src/index.js
   init_session();
@@ -1362,7 +1458,9 @@
       e.preventDefault();
       const headerCell = e.target.closest("thead th, thead td");
       const ctxTh = headerCell && ctxTable.contains(headerCell) ? headerCell : null;
-      showMenu(e.clientX, e.clientY, ctxTable, e.target.closest("tbody tr") || null, ctxTh);
+      const anyCell = e.target.closest("td, th");
+      const ctxCell = anyCell && ctxTable.contains(anyCell) ? anyCell : null;
+      showMenu(e.clientX, e.clientY, ctxTable, e.target.closest("tbody tr") || null, ctxTh, ctxCell);
     }
   });
   chrome.runtime.onMessage.addListener((msg) => {

@@ -29,8 +29,10 @@ document.addEventListener('contextmenu', e => {
   if (ctxTable) {
     e.preventDefault();
     const headerCell = e.target.closest('thead th, thead td');
-    const ctxTh = (headerCell && ctxTable.contains(headerCell)) ? headerCell : null;
-    showMenu(e.clientX, e.clientY, ctxTable, e.target.closest('tbody tr') || null, ctxTh);
+    const ctxTh   = (headerCell && ctxTable.contains(headerCell)) ? headerCell : null;
+    const anyCell = e.target.closest('td, th');
+    const ctxCell = (anyCell && ctxTable.contains(anyCell)) ? anyCell : null;
+    showMenu(e.clientX, e.clientY, ctxTable, e.target.closest('tbody tr') || null, ctxTh, ctxCell);
   }
 });
 
