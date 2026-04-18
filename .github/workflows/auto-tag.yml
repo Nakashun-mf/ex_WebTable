@@ -12,6 +12,7 @@ on:
 
 permissions:
   contents: write
+  pull-requests: write
 
 jobs:
   tag:
@@ -79,8 +80,20 @@ jobs:
           git tag "v${{ steps.bump.outputs.version }}"
           git push origin "v${{ steps.bump.outputs.version }}"
 
-      - name: Push version bump to main
+      - name: Create branch and push version bump
         run: |
+          BRANCH="chore/bump-version-v${{ steps.bump.outputs.version }}"
+          git checkout -b "$BRANCH"
           git add manifest.json
           git commit -m "chore: bump version to v${{ steps.bump.outputs.version }}"
-          git push origin HEAD:main
+          git push origin "$BRANCH"
+
+      - name: Create PR for version bump
+        run: |
+          gh pr create \
+            --title "chore: bump version to v${{ steps.bump.outputs.version }}" \
+            --body "Automated version bump to v${{ steps.bump.outputs.version }} (${{ steps.bump.outputs.bump }} bump)" \
+            --base main \
+            --head "chore/bump-version-v${{ steps.bump.outputs.version }}"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
