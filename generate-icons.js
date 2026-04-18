@@ -3,9 +3,8 @@
  * Generates PNG icons for the Chrome extension (16, 48, 128px).
  * Requires only Node.js built-in modules (zlib, fs).
  */
-'use strict';
-const zlib = require('zlib');
-const fs   = require('fs');
+import zlib from 'zlib';
+import fs   from 'fs';
 
 // ─── CRC32 ───────────────────────────────────────────────────────────────────
 const CRC_TABLE = (() => {
