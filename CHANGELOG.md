@@ -4,6 +4,12 @@ All notable changes to WebTable Enhancer are documented here.
 
 ## [Unreleased]
 
+## [1.1.6] - 2026-04-19
+### Fixed
+- workflow_call を廃止: reusable workflow 呼び出しでリリースが作成されなかった問題を解消
+- ビルド・テスト・ZIP作成・GitHubリリース作成を auto-tag.yml の同一ジョブに直接インライン化
+- GITHUB_TOKEN のトリガー制約（タグpushが他ワークフローを起動しない）を根本的に回避
+
 ## [1.1.5] - 2026-04-19
 ### Fixed
 - package.yml に `contents: write` 権限を追加（リリース作成に必要）
