@@ -3,10 +3,25 @@
 
 import { isTransformed } from './utils.js';
 
-/** Stable key based on the table's index in the page and the current URL. */
-function tableKey(table) {
+/**
+ * Generates a stable key for the table using:
+ * 1. table#id if present
+ * 2. First 5 header texts encoded as base64 (content-based, order-independent)
+ * Falls back to index-based key only when no headers exist.
+ */
+export function tableKey(table) {
+  if (table.id) {
+    return `wte:${location.pathname}:id:${table.id}`;
+  }
+  const headers = Array.from(table.querySelectorAll('th, thead td')).slice(0, 5)
+    .map(th => th.textContent.trim())
+    .join('\0');
+  if (headers) {
+    const encoded = btoa(encodeURIComponent(headers)).slice(0, 32);
+    return `wte:${location.pathname}:h:${encoded}`;
+  }
   const idx = Array.from(document.querySelectorAll('table')).indexOf(table);
-  return `wte:${location.href}:${idx}`;
+  return `wte:${location.pathname}:${idx}`;
 }
 
 /** Serialize and save the current table state to sessionStorage. */
@@ -48,7 +63,7 @@ export function clearSession(table) {
  * Import transformToRich/Tree lazily to avoid circular dependency.
  */
 export async function restoreAllSessions() {
-  const prefix = `wte:${location.href}:`;
+  const prefix = `wte:${location.pathname}:`;
   const keys   = [];
   for (let i = 0; i < sessionStorage.length; i++) {
     const k = sessionStorage.key(i);
@@ -65,11 +80,9 @@ export async function restoreAllSessions() {
   const tables = Array.from(document.querySelectorAll('table'));
 
   for (const key of keys) {
-    const idx = parseInt(key.slice(prefix.length));
-    if (isNaN(idx)) continue;
-
-    const table = tables[idx];
-    if (!table || isTransformed(table)) continue;
+    // Match the table by re-computing each table's key and comparing
+    const table = tables.find(t => !isTransformed(t) && tableKey(t) === key);
+    if (!table) continue;
 
     let state;
     try { state = JSON.parse(sessionStorage.getItem(key)); } catch { continue; }

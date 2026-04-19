@@ -1,6 +1,7 @@
 // Column filter panel (Excel-like per-column checkbox filters) and global search.
 
 import { getCachedBodyRows, addOutsideClickListener } from './utils.js';
+import { FILTER_PANEL_WIDTH_PX } from './config.js';
 import { saveSession } from './session.js';
 
 /** Apply global search + all active column filters together. */
@@ -172,7 +173,7 @@ export function showColFilterPanel(table, colIdx, th) {
   const rect   = th.getBoundingClientRect();
   const vw     = window.innerWidth;
   const vh     = window.innerHeight;
-  const panelW = 220;
+  const panelW = FILTER_PANEL_WIDTH_PX;
 
   let left = rect.left;
   let top  = rect.bottom + 2;

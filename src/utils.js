@@ -1,5 +1,7 @@
 // Core DOM utilities shared across all modules.
 
+import { TOAST_TIMEOUT_MS } from './config.js';
+
 export function findTable(el) {
   if (!el) return null;
   return el.tagName === 'TABLE' ? el : el.closest('table');
@@ -25,7 +27,7 @@ export function notify(text) {
 
   el.addEventListener('click', remove);
   document.addEventListener('keydown', onKey);
-  setTimeout(remove, 3500);
+  setTimeout(remove, TOAST_TIMEOUT_MS);
 }
 
 /**
