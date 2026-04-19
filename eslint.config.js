@@ -21,6 +21,9 @@ export default [
         Blob: 'readonly',
         NodeFilter: 'readonly',
         Set: 'readonly',
+        console: 'readonly',
+        btoa: 'readonly',
+        encodeURIComponent: 'readonly',
         // Chrome extension globals
         chrome: 'readonly',
       },
