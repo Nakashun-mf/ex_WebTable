@@ -15,14 +15,11 @@ permissions:
   pull-requests: write
 
 jobs:
-  tag:
-    name: Determine SemVer bump and tag
+  tag-and-release:
+    name: Bump version, tag, and release
     runs-on: ubuntu-latest
     # bot がバージョンを上げた際の無限ループを防ぐ
     if: github.actor != 'github-actions[bot]'
-    outputs:
-      version: ${{ steps.bump.outputs.version }}
-      skip: ${{ steps.bump.outputs.skip }}
 
     steps:
       - name: Checkout
@@ -35,7 +32,6 @@ jobs:
         id: bump
         run: |
           # 最新タグを semver 降順ソートで取得（同一コミットに複数タグがある場合も正確に最大値を得る）
-          # git describe は同一コミットに複数タグがあると古い方を返すことがあるため使わない
           LAST_TAG=$(git tag --sort=-v:refname | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | head -1)
           if [ -z "$LAST_TAG" ]; then
             LAST_TAG="v0.0.0"
@@ -43,22 +39,16 @@ jobs:
           CURRENT=${LAST_TAG#v}
           echo "Last tag: $LAST_TAG  Current version: $CURRENT"
 
-          # 最新タグ以降のコミットメッセージを取得
           COMMITS=$(git log "${LAST_TAG}..HEAD" --pretty=format:"%s" 2>/dev/null)
           echo "Commits since $LAST_TAG:"
           echo "$COMMITS"
 
-          # 新コミットがなければスキップ
           if [ -z "$COMMITS" ]; then
             echo "No new commits since $LAST_TAG — skipping"
             echo "skip=true" >> "$GITHUB_OUTPUT"
             exit 0
           fi
 
-          # Conventional Commits に基づいてバンプ種別を決定
-          # BREAKING CHANGE または '!:' → MAJOR
-          # feat: / feat(...): → MINOR
-          # その他 → PATCH
           if echo "$COMMITS" | grep -qE "(BREAKING CHANGE|!:)"; then
             BUMP="major"
           elif echo "$COMMITS" | grep -qE "^feat(\([^)]*\))?:"; then
@@ -77,7 +67,6 @@ jobs:
 
           NEW_VERSION="$MAJOR.$MINOR.$PATCH"
 
-          # 算出したタグが既に存在する場合はスキップ（重複タグ防止）
           if git rev-parse "v$NEW_VERSION" >/dev/null 2>&1; then
             echo "Tag v$NEW_VERSION already exists — skipping"
             echo "skip=true" >> "$GITHUB_OUTPUT"
@@ -95,7 +84,7 @@ jobs:
           echo "skip=false" >> "$GITHUB_OUTPUT"
           echo "Bumped: $CURRENT -> $NEW_VERSION ($BUMP)"
 
-      - name: Push tag on current commit
+      - name: Push tag
         if: steps.bump.outputs.skip != 'true'
         run: |
           git config user.name "github-actions[bot]"
@@ -103,8 +92,9 @@ jobs:
           git tag "v${{ steps.bump.outputs.version }}"
           git push origin "v${{ steps.bump.outputs.version }}"
 
-      - name: Create branch and push version bump
+      - name: Create manifest.json bump PR
         if: steps.bump.outputs.skip != 'true'
+        id: create_pr
         run: |
           BRANCH="chore/bump-version-v${{ steps.bump.outputs.version }}"
           git config user.name "github-actions[bot]"
@@ -114,44 +104,94 @@ jobs:
           git commit -m "chore: bump version to v${{ steps.bump.outputs.version }}"
           git push origin "$BRANCH"
 
-      - name: Create PR for version bump
-        if: steps.bump.outputs.skip != 'true'
-        id: create_pr
-        run: |
-          # 同タイトルのPRが既にオープンな場合は再作成しない
           EXISTING=$(gh pr list --base main \
-            --head "chore/bump-version-v${{ steps.bump.outputs.version }}" \
+            --head "$BRANCH" \
             --state open --json url --jq '.[0].url')
           if [ -n "$EXISTING" ]; then
-            echo "PR already exists: $EXISTING"
             echo "pr_url=$EXISTING" >> "$GITHUB_OUTPUT"
           else
             PR_URL=$(gh pr create \
               --title "chore: bump version to v${{ steps.bump.outputs.version }}" \
               --body "Automated version bump to v${{ steps.bump.outputs.version }} (${{ steps.bump.outputs.bump }} bump)" \
               --base main \
-              --head "chore/bump-version-v${{ steps.bump.outputs.version }}")
+              --head "$BRANCH")
             echo "pr_url=$PR_URL" >> "$GITHUB_OUTPUT"
-            echo "Created PR: $PR_URL"
           fi
+          gh pr merge --auto --squash "${{ steps.create_pr.outputs.pr_url }}" || true
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Enable auto-merge on version bump PR
+      # ── Build & Release (同一ジョブで実行してGITHUB_TOKENトリガー問題を回避) ──
+
+      - name: Setup Node.js
+        if: steps.bump.outputs.skip != 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        if: steps.bump.outputs.skip != 'true'
+        run: npm ci
+
+      - name: Run tests
+        if: steps.bump.outputs.skip != 'true'
+        run: npm test
+
+      - name: Build content script
+        if: steps.bump.outputs.skip != 'true'
+        run: npm run build
+
+      - name: Generate icons
+        if: steps.bump.outputs.skip != 'true'
+        run: node generate-icons.js
+
+      - name: Sync manifest.json version for ZIP
         if: steps.bump.outputs.skip != 'true'
         run: |
-          gh pr merge --auto --squash "${{ steps.create_pr.outputs.pr_url }}"
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          node -e "
+            const fs = require('fs');
+            const m = JSON.parse(fs.readFileSync('manifest.json', 'utf8'));
+            m.version = '${{ steps.bump.outputs.version }}';
+            fs.writeFileSync('manifest.json', JSON.stringify(m, null, 2) + '\n');
+          "
 
-  # GITHUB_TOKEN でのタグpushは他のワークフローをトリガーしないため、
-  # workflow_call で package.yml を直接呼び出してリリースを作成する
-  release:
-    name: Build & Release
-    needs: tag
-    if: needs.tag.outputs.skip != 'true'
-    uses: ./.github/workflows/package.yml
-    with:
-      version: ${{ needs.tag.outputs.version }}
-    permissions:
-      contents: write
+      - name: Create ZIP
+        if: steps.bump.outputs.skip != 'true'
+        run: |
+          ZIP_NAME="webtable-enhancer-v${{ steps.bump.outputs.version }}.zip"
+          zip -r "$ZIP_NAME" \
+            manifest.json \
+            background.js \
+            content.js \
+            styles.css \
+            icons/
+          echo "zip_name=$ZIP_NAME" >> "$GITHUB_ENV"
+          unzip -l "$ZIP_NAME"
+
+      - name: Upload artifact
+        if: steps.bump.outputs.skip != 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: webtable-enhancer-v${{ steps.bump.outputs.version }}
+          path: ${{ env.zip_name }}
+          if-no-files-found: error
+
+      - name: Create GitHub Release
+        if: steps.bump.outputs.skip != 'true'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: "v${{ steps.bump.outputs.version }}"
+          name: "WebTable Enhancer v${{ steps.bump.outputs.version }}"
+          body: |
+            ## WebTable Enhancer v${{ steps.bump.outputs.version }}
+
+            ### Installation
+            Download the ZIP below and upload it to the [Chrome Developer Dashboard](https://chrome.google.com/webstore/devconsole/).
+
+            ### What's new
+            See [CHANGELOG](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md) for details.
+          files: ${{ env.zip_name }}
+          generate_release_notes: true
+          draft: false
+          prerelease: false
