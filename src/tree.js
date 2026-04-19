@@ -4,6 +4,7 @@ import {
   getHeaderCells, getBodyRows, ensureStructure,
   isTransformed, saveSnapshot, notify
 } from './utils.js';
+import { TREE_INDENT_BASE_PX, TREE_INDENT_STEP_PX } from './config.js';
 import { addColResizeHandles } from './resize.js';
 import { addColReorderHandles } from './reorder.js';
 import { setupTableInteraction } from './interaction.js';
@@ -36,6 +37,15 @@ export function transformToTree(table) {
     return;
   }
 
+  try {
+    _applyTree(table);
+  } catch (err) {
+    console.error('[WebTable Enhancer] ツリー変換中にエラーが発生しました:', err);
+    notify('変換中にエラーが発生しました。このテーブルには対応していない構造が含まれている可能性があります。');
+  }
+}
+
+function _applyTree(table) {
   saveSnapshot(table);
   ensureStructure(table);
 
@@ -133,7 +143,7 @@ export function transformToTree(table) {
     if (!cell) return;
 
     // Apply indentation via CSS custom property (overrides !important padding)
-    const indentPx = 8 + (node.level - 1) * 20;
+    const indentPx = TREE_INDENT_BASE_PX + (node.level - 1) * TREE_INDENT_STEP_PX;
     cell.style.setProperty('--wte-indent', `${indentPx}px`);
 
     if (node.children.length) {

@@ -17,6 +17,15 @@ export function transformToRich(table) {
     return;
   }
 
+  try {
+    _applyRich(table);
+  } catch (err) {
+    console.error('[WebTable Enhancer] リッチ変換中にエラーが発生しました:', err);
+    notify('変換中にエラーが発生しました。このテーブルには対応していない構造が含まれている可能性があります。');
+  }
+}
+
+function _applyRich(table) {
   saveSnapshot(table);
 
   // Wrap in container
