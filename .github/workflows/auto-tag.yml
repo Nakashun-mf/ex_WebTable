@@ -20,6 +20,9 @@ jobs:
     runs-on: ubuntu-latest
     # bot がバージョンを上げた際の無限ループを防ぐ
     if: github.actor != 'github-actions[bot]'
+    outputs:
+      version: ${{ steps.bump.outputs.version }}
+      skip: ${{ steps.bump.outputs.skip }}
 
     steps:
       - name: Checkout
@@ -140,3 +143,15 @@ jobs:
           gh pr merge --auto --squash "${{ steps.create_pr.outputs.pr_url }}"
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # GITHUB_TOKEN でのタグpushは他のワークフローをトリガーしないため、
+  # workflow_call で package.yml を直接呼び出してリリースを作成する
+  release:
+    name: Build & Release
+    needs: tag
+    if: needs.tag.outputs.skip != 'true'
+    uses: ./.github/workflows/package.yml
+    with:
+      version: ${{ needs.tag.outputs.version }}
+    permissions:
+      contents: write
