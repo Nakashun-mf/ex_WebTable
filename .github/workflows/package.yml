@@ -10,6 +10,13 @@ on:
         description: "Version string (e.g. 1.0.0). Leave blank to use manifest version."
         required: false
         default: ""
+  # auto-tag.yml から直接呼び出す（GITHUB_TOKEN でのタグpushは他のワークフローをトリガーしないため）
+  workflow_call:
+    inputs:
+      version:
+        description: "Version string to package and release"
+        type: string
+        required: true
 
 permissions:
   contents: write
@@ -22,6 +29,9 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          # workflow_call / workflow_dispatch でバージョン指定がある場合はそのタグをチェックアウト
+          ref: ${{ inputs.version != '' && format('refs/tags/v{0}', inputs.version) || github.ref }}
 
       # ── Resolve version ─────────────────────────────────────────────────────
       - name: Resolve version
@@ -37,9 +47,9 @@ jobs:
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "Packaging version: $VERSION"
 
-      # ── Sync manifest.json version for tag builds ───────────────────────────
+      # ── Sync manifest.json version ───────────────────────────────────────────
       - name: Sync manifest.json version
-        if: github.event_name == 'push' && github.ref_type == 'tag'
+        if: github.event_name != 'workflow_dispatch' || inputs.version != ''
         run: |
           VERSION="${{ steps.ver.outputs.version }}"
           node -e "
@@ -95,11 +105,15 @@ jobs:
           path: ${{ env.zip_name }}
           if-no-files-found: error
 
-      # ── Create GitHub Release (tag pushes only) ──────────────────────────────
+      # ── Create GitHub Release ────────────────────────────────────────────────
       - name: Create GitHub Release
-        if: github.event_name == 'push' && github.ref_type == 'tag'
+        if: >
+          (github.event_name == 'push' && github.ref_type == 'tag') ||
+          github.event_name == 'workflow_call' ||
+          (github.event_name == 'workflow_dispatch' && inputs.version != '')
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: "v${{ steps.ver.outputs.version }}"
           name: "WebTable Enhancer v${{ steps.ver.outputs.version }}"
           body: |
             ## WebTable Enhancer v${{ steps.ver.outputs.version }}
