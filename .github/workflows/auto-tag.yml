@@ -31,8 +31,12 @@ jobs:
       - name: Determine SemVer bump from commit messages
         id: bump
         run: |
-          # 最新タグを取得（なければ v0.0.0 をベースにする）
-          LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
+          # 最新タグを semver 降順ソートで取得（同一コミットに複数タグがある場合も正確に最大値を得る）
+          # git describe は同一コミットに複数タグがあると古い方を返すことがあるため使わない
+          LAST_TAG=$(git tag --sort=-v:refname | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | head -1)
+          if [ -z "$LAST_TAG" ]; then
+            LAST_TAG="v0.0.0"
+          fi
           CURRENT=${LAST_TAG#v}
           echo "Last tag: $LAST_TAG  Current version: $CURRENT"
 
@@ -47,7 +51,6 @@ jobs:
             echo "skip=true" >> "$GITHUB_OUTPUT"
             exit 0
           fi
-          echo "skip=false" >> "$GITHUB_OUTPUT"
 
           # Conventional Commits に基づいてバンプ種別を決定
           # BREAKING CHANGE または '!:' → MAJOR
@@ -71,6 +74,13 @@ jobs:
 
           NEW_VERSION="$MAJOR.$MINOR.$PATCH"
 
+          # 算出したタグが既に存在する場合はスキップ（重複タグ防止）
+          if git rev-parse "v$NEW_VERSION" >/dev/null 2>&1; then
+            echo "Tag v$NEW_VERSION already exists — skipping"
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
           node -e "
             const fs = require('fs');
             const m = JSON.parse(fs.readFileSync('manifest.json', 'utf8'));
@@ -79,6 +89,7 @@ jobs:
           "
           echo "version=$NEW_VERSION" >> "$GITHUB_OUTPUT"
           echo "bump=$BUMP" >> "$GITHUB_OUTPUT"
+          echo "skip=false" >> "$GITHUB_OUTPUT"
           echo "Bumped: $CURRENT -> $NEW_VERSION ($BUMP)"
 
       - name: Push tag on current commit
@@ -93,6 +104,8 @@ jobs:
         if: steps.bump.outputs.skip != 'true'
         run: |
           BRANCH="chore/bump-version-v${{ steps.bump.outputs.version }}"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
           git checkout -b "$BRANCH"
           git add manifest.json
           git commit -m "chore: bump version to v${{ steps.bump.outputs.version }}"
@@ -102,13 +115,22 @@ jobs:
         if: steps.bump.outputs.skip != 'true'
         id: create_pr
         run: |
-          PR_URL=$(gh pr create \
-            --title "chore: bump version to v${{ steps.bump.outputs.version }}" \
-            --body "Automated version bump to v${{ steps.bump.outputs.version }} (${{ steps.bump.outputs.bump }} bump)" \
-            --base main \
-            --head "chore/bump-version-v${{ steps.bump.outputs.version }}")
-          echo "pr_url=$PR_URL" >> "$GITHUB_OUTPUT"
-          echo "Created PR: $PR_URL"
+          # 同タイトルのPRが既にオープンな場合は再作成しない
+          EXISTING=$(gh pr list --base main \
+            --head "chore/bump-version-v${{ steps.bump.outputs.version }}" \
+            --state open --json url --jq '.[0].url')
+          if [ -n "$EXISTING" ]; then
+            echo "PR already exists: $EXISTING"
+            echo "pr_url=$EXISTING" >> "$GITHUB_OUTPUT"
+          else
+            PR_URL=$(gh pr create \
+              --title "chore: bump version to v${{ steps.bump.outputs.version }}" \
+              --body "Automated version bump to v${{ steps.bump.outputs.version }} (${{ steps.bump.outputs.bump }} bump)" \
+              --base main \
+              --head "chore/bump-version-v${{ steps.bump.outputs.version }}")
+            echo "pr_url=$PR_URL" >> "$GITHUB_OUTPUT"
+            echo "Created PR: $PR_URL"
+          fi
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
