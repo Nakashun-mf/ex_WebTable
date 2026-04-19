@@ -4,6 +4,14 @@ All notable changes to WebTable Enhancer are documented here.
 
 ## [Unreleased]
 
+## [1.1.4] - 2026-04-19
+### Fixed
+- GitHub Actions: actions/checkout・setup-node・upload-artifact を有効なバージョン(@v4)に修正
+- auto-tag: git describe が同一コミットに複数タグがある場合に古いタグを返すバグを修正
+- auto-tag: 算出したタグが既存の場合はスキップして重複タグ作成を防止
+- CI (ci.yml) を新規追加: PRとmainへのpushでlint+testを自動実行
+- CHANGELOG.md を追加
+
 ## [1.1.3] - 2026-04-18
 ### Fixed
 - Revert to PR-based version bump workflow after repository settings change
