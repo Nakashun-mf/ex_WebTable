@@ -18,7 +18,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v4
 
       # ── Resolve version ─────────────────────────────────────────────────────
       - name: Resolve version
@@ -49,14 +49,18 @@ jobs:
 
       # ── Setup Node.js ───────────────────────────────────────────────────────
       - name: Setup Node.js
-        uses: actions/setup-node@v5
+        uses: actions/setup-node@v4
         with:
-          node-version: '24'
+          node-version: '22'
           cache: 'npm'
 
       # ── Install dependencies ─────────────────────────────────────────────────
       - name: Install dependencies
         run: npm ci
+
+      # ── Run tests ────────────────────────────────────────────────────────────
+      - name: Run tests
+        run: npm test
 
       # ── Build content script ─────────────────────────────────────────────────
       - name: Build content script
@@ -82,7 +86,7 @@ jobs:
 
       # ── Upload as workflow artifact ──────────────────────────────────────────
       - name: Upload artifact
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v4
         with:
           name: webtable-enhancer-v${{ steps.ver.outputs.version }}
           path: ${{ env.zip_name }}
@@ -103,5 +107,6 @@ jobs:
             ### What's new
             See [CHANGELOG](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md) for details.
           files: ${{ env.zip_name }}
+          generate_release_notes: true
           draft: false
           prerelease: false
