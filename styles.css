@@ -319,6 +319,36 @@
   background: var(--wte-border);
   margin: 4px 0;
 }
+.wte-ctx-submenu {
+  position: relative;
+  padding-right: 28px !important;
+}
+.wte-ctx-submenu::after {
+  content: '▶';
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 0.6em;
+  opacity: 0.45;
+  pointer-events: none;
+}
+.wte-ctx-submenu-panel {
+  display: none;
+  position: absolute;
+  left: 100%;
+  top: 0;
+  min-width: 188px;
+  padding: 4px 0;
+  background: #ffffff;
+  border: 1px solid var(--wte-border);
+  border-radius: 20px;
+  box-shadow: 0 2px 4px 0 rgba(0,0,0,.10), 0 12px 28px 0 rgba(0,0,0,.15);
+  z-index: 2147483647;
+}
+.wte-ctx-submenu:hover .wte-ctx-submenu-panel {
+  display: block;
+}
 
 /* ─── Two-row header cell layout ─────────────────────────────────────── */
 .wte-th-label {
