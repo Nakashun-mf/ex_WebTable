@@ -346,9 +346,6 @@
   box-shadow: 0 2px 4px 0 rgba(0,0,0,.10), 0 12px 28px 0 rgba(0,0,0,.15);
   z-index: 2147483647;
 }
-.wte-ctx-submenu:hover .wte-ctx-submenu-panel {
-  display: block;
-}
 
 /* ─── Two-row header cell layout ─────────────────────────────────────── */
 .wte-th-label {
