@@ -81,22 +81,23 @@ export function showMenu(clientX, clientY, table, row, th = null, cell = null) {
   menu.appendChild(makeSep());
 
   // ② Copy + CSV download
+  if (selectedText) {
+    menu.appendChild(makeMenuItem(
+      '選択したテキストをコピー',
+      () => { copyText(selectedText); hideMenu(); }
+    ));
+  }
   menu.appendChild(makeMenuItem(
     'セルの内容をコピー',
     () => { copyText(cleanCell(cell), 'セルの内容をコピーしました ✓'); hideMenu(); },
     cell === null
   ));
-  menu.appendChild(makeMenuItem('選択した行をコピー', () => {
-    copyRowsAsTSV([...targets], false, table); hideMenu();
+  menu.appendChild(makeMenuItem('ヘッダーと選択した行をコピー', () => {
+    copyRowsAsTSV([...targets], true, table); hideMenu();
   }, !hasTargets));
   menu.appendChild(makeSubMenuSection('その他のコピー・出力', [
-    makeMenuItem(
-      '選択したテキストをコピー',
-      () => { copyText(selectedText); hideMenu(); },
-      !selectedText
-    ),
-    makeMenuItem('ヘッダーと選択した行をコピー', () => {
-      copyRowsAsTSV([...targets], true, table); hideMenu();
+    makeMenuItem('選択した行をコピー', () => {
+      copyRowsAsTSV([...targets], false, table); hideMenu();
     }, !hasTargets),
     makeMenuItem('CSV でダウンロード', () => {
       exportTableAsCSV(table); hideMenu();
@@ -210,6 +211,37 @@ function makeSubMenuSection(label, items) {
   panel.className = 'wte-ctx-submenu-panel';
   items.forEach(item => panel.appendChild(item));
   el.appendChild(panel);
+
+  el.addEventListener('mouseenter', () => {
+    panel.style.visibility = 'hidden';
+    panel.style.display = 'block';
+
+    const elRect = el.getBoundingClientRect();
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+
+    if (elRect.right + panel.offsetWidth > vw - 8) {
+      panel.style.left = 'auto';
+      panel.style.right = '100%';
+    } else {
+      panel.style.left = '100%';
+      panel.style.right = 'auto';
+    }
+
+    if (elRect.top + panel.offsetHeight > vh - 8) {
+      panel.style.top = 'auto';
+      panel.style.bottom = '0';
+    } else {
+      panel.style.top = '0';
+      panel.style.bottom = 'auto';
+    }
+
+    panel.style.visibility = '';
+  });
+
+  el.addEventListener('mouseleave', () => {
+    panel.style.display = '';
+  });
 
   return el;
 }
