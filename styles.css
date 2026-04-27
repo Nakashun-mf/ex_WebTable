@@ -288,7 +288,7 @@
 .wte-ctx-menu {
   position: fixed;
   z-index: 2147483646;
-  min-width: 188px;
+  min-width: 210px;
   padding: 4px 0;
   background: #ffffff;
   border: 1px solid var(--wte-border);
@@ -296,6 +296,49 @@
   box-shadow: 0 2px 4px 0 rgba(0,0,0,.10), 0 12px 28px 0 rgba(0,0,0,.15);
   font: 13px/1.5 system-ui, -apple-system, sans-serif;
   color: var(--wte-text-body);
+  user-select: none;
+}
+.wte-ctx-btn-strip {
+  display: flex;
+  gap: 2px;
+  padding: 6px 8px 8px;
+  border-bottom: 1px solid var(--wte-border);
+}
+.wte-ctx-btn {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 7px 4px 6px;
+  border-radius: 8px;
+  cursor: pointer;
+  color: var(--wte-text-body);
+  transition: background .1s, color .1s;
+}
+.wte-ctx-btn:hover {
+  background: var(--wte-bg-hover);
+  color: var(--wte-accent);
+}
+.wte-ctx-btn-active {
+  color: var(--wte-accent);
+}
+.wte-ctx-btn svg {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+.wte-ctx-btn span {
+  font-size: 10px;
+  white-space: nowrap;
+}
+.wte-ctx-section-label {
+  padding: 6px 16px 2px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--wte-text-muted);
   user-select: none;
 }
 .wte-ctx-item {
