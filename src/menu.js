@@ -1,6 +1,12 @@
 // Custom in-page context menu for transformed tables.
 
 import { getHeaderCells, cleanCell, positionPopup } from './utils.js';
+
+const ICONS = {
+  highlight: `<svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="2" y="6" width="12" height="4" rx="1" fill="currentColor" opacity="0.25"/><line x1="2" y1="3.75" x2="14" y2="3.75" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><line x1="2" y1="12.25" x2="14" y2="12.25" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><line x1="2" y1="6" x2="14" y2="6" stroke="currentColor" stroke-width="1" stroke-linecap="round" opacity="0.4"/><line x1="2" y1="10" x2="14" y2="10" stroke="currentColor" stroke-width="1" stroke-linecap="round" opacity="0.4"/></svg>`,
+  copy: `<svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="5.5" y="5.5" width="8" height="8" rx="1.5"/><path d="M10.5 5.5V3.5a1 1 0 0 0-1-1h-6a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h2"/></svg>`,
+  reset: `<svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 8.5a4.5 4.5 0 1 0 .8-2.6"/><polyline points="3.5 3.5 3.5 8.5 8.5 8.5"/></svg>`,
+};
 import { hideColFilterPanel } from './filters.js';
 import {
   getThColIdx, hideColumn, hideColVisibilityPanel,
@@ -56,7 +62,6 @@ export function showMenu(clientX, clientY, table, row, th = null, cell = null) {
   const selectedRows  = getSelectedRows(table);
   const selectedText  = window.getSelection()?.toString() ?? '';
 
-  // Determine which rows actions should apply to
   let targets;
   if (row) {
     targets = selectedRows.has(row) ? selectedRows : new Set([row]);
@@ -64,34 +69,40 @@ export function showMenu(clientX, clientY, table, row, th = null, cell = null) {
     targets = selectedRows;
   }
 
-  const hasTargets    = targets.size > 0;
-  const allHighlit    = hasTargets && [...targets].every(r => r.classList.contains('wte-highlight'));
-  const isRich        = table.classList.contains('wte-rich');
+  const hasTargets = targets.size > 0;
+  const allHighlit = hasTargets && [...targets].every(r => r.classList.contains('wte-highlight'));
+  const isRich     = table.classList.contains('wte-rich');
 
   const menu = getOrCreateMenu();
   menu.innerHTML = '';
 
-  // ① Highlight
-  menu.appendChild(makeMenuItem(
-    allHighlit ? 'ハイライトを解除' : '行をハイライト',
-    () => { targets.forEach(r => r.classList.toggle('wte-highlight', !allHighlit)); hideMenu(); },
-    !hasTargets
-  ));
+  // ① Button strip — frequent actions as icon+label buttons
+  menu.appendChild(makeButtonStrip([
+    {
+      icon: ICONS.highlight,
+      label: 'ハイライト',
+      active: allHighlit,
+      onClick: () => { targets.forEach(r => r.classList.toggle('wte-highlight', !allHighlit)); hideMenu(); },
+      disabled: !hasTargets,
+    },
+    {
+      icon: ICONS.copy,
+      label: 'コピー',
+      onClick: () => { copyText(cleanCell(cell), 'セルの内容をコピーしました ✓'); hideMenu(); },
+      disabled: cell === null,
+    },
+    {
+      icon: ICONS.reset,
+      label: '元に戻す',
+      onClick: () => { resetTable(table); hideMenu(); },
+    },
+  ]));
 
-  menu.appendChild(makeSep());
-
-  // ② Copy + CSV download
+  // ② Copy + CSV
+  menu.appendChild(makeSectionLabel('コピー・出力'));
   if (selectedText) {
-    menu.appendChild(makeMenuItem(
-      '選択したテキストをコピー',
-      () => { copyText(selectedText); hideMenu(); }
-    ));
+    menu.appendChild(makeMenuItem('選択したテキストをコピー', () => { copyText(selectedText); hideMenu(); }));
   }
-  menu.appendChild(makeMenuItem(
-    'セルの内容をコピー',
-    () => { copyText(cleanCell(cell), 'セルの内容をコピーしました ✓'); hideMenu(); },
-    cell === null
-  ));
   menu.appendChild(makeMenuItem('ヘッダーと選択した行をコピー', () => {
     copyRowsAsTSV([...targets], true, table); hideMenu();
   }, !hasTargets));
@@ -104,14 +115,14 @@ export function showMenu(clientX, clientY, table, row, th = null, cell = null) {
     }),
   ]));
 
-  menu.appendChild(makeSep());
-
   // ③ Column visibility
+  menu.appendChild(makeSep());
+  menu.appendChild(makeSectionLabel('列の表示'));
   if (th !== null) {
-    const thColIdx    = getThColIdx(table, th);
-    const isLevelCol  = table._wteLvColIdx !== undefined && thColIdx === table._wteLvColIdx;
-    const totalCols   = getHeaderCells(table).length;
-    const hiddenCount = table._wteHiddenCols?.size ?? 0;
+    const thColIdx     = getThColIdx(table, th);
+    const isLevelCol   = table._wteLvColIdx !== undefined && thColIdx === table._wteLvColIdx;
+    const totalCols    = getHeaderCells(table).length;
+    const hiddenCount  = table._wteHiddenCols?.size ?? 0;
     const isLastVisible = !table._wteHiddenCols?.has(thColIdx) && hiddenCount >= totalCols - 1;
     menu.appendChild(makeMenuItem(
       'この列を非表示',
@@ -119,25 +130,19 @@ export function showMenu(clientX, clientY, table, row, th = null, cell = null) {
       isLevelCol || isLastVisible
     ));
   }
-  menu.appendChild(makeMenuItem(
-    '非表示列の管理',
-    () => { hideMenu(); showColVisibilityPanel(table, clientX, clientY); },
-    false
-  ));
+  menu.appendChild(makeMenuItem('非表示列の管理', () => { hideMenu(); showColVisibilityPanel(table, clientX, clientY); }));
 
+  // ④ Display settings
   menu.appendChild(makeSep());
-
-  // ④ Text-wrap mode toggle (both rich and tree)
+  menu.appendChild(makeSectionLabel('表示設定'));
   const isWrapMode = table.classList.contains('wte-wrap-mode');
   menu.appendChild(makeMenuItem(
     isWrapMode ? 'はみ出し表示にする（改行なし）' : '画面内に収める（改行あり）',
     () => {
       const enabling = !table.classList.contains('wte-wrap-mode');
       table.classList.toggle('wte-wrap-mode');
-      // Expand wrapper to full width in wrap mode so table can fill it
       const wrapEl = table.closest('.wte-wrap, .wte-tree-wrap');
       if (wrapEl) wrapEl.style.width = enabling ? '100%' : '';
-      // Clear col pixel-widths in wrap mode so table-layout:auto can honour width:100%
       if (enabling) {
         if (table._wteCols) {
           table._wteWrapColWidths = table._wteCols.map(c => c.style.width);
@@ -152,46 +157,55 @@ export function showMenu(clientX, clientY, table, row, th = null, cell = null) {
       hideMenu();
     }
   ));
-
-  menu.appendChild(makeSep());
-
-  // ⑤ Switch view
   menu.appendChild(makeMenuItem(
     isRich ? 'ツリー表示に変換' : 'リッチ表示に変換',
-    () => {
-      resetTable(table);
-      if (isRich) transformToTree(table);
-      else        transformToRich(table);
-      hideMenu();
-    }
+    () => { resetTable(table); if (isRich) transformToTree(table); else transformToRich(table); hideMenu(); }
   ));
 
-  // ⑥ Tree expand / collapse (tree only)
+  // ⑤ Tree controls (tree only)
   if (!isRich && table._wteNodes) {
     const maxLv = Math.max(...table._wteNodes.map(n => n.level));
     menu.appendChild(makeSep());
+    menu.appendChild(makeSectionLabel('ツリー操作'));
     menu.appendChild(makeMenuItem('全展開', () => { expandAll(table); hideMenu(); }));
     menu.appendChild(makeMenuItem('全折りたたみ', () => { collapseAll(table); hideMenu(); }));
     if (maxLv > 1) {
       const levelItems = [];
       for (let lv = 1; lv < maxLv; lv++) {
         const level = lv;
-        levelItems.push(makeMenuItem(
-          `レベル${level}まで展開`,
-          () => { expandToLevel(table, level); hideMenu(); }
-        ));
+        levelItems.push(makeMenuItem(`レベル${level}まで展開`, () => { expandToLevel(table, level); hideMenu(); }));
       }
       menu.appendChild(makeSubMenuSection('レベル指定で展開', levelItems));
     }
   }
 
-  menu.appendChild(makeSep());
-
-  // Reset
-  menu.appendChild(makeMenuItem('元に戻す', () => { resetTable(table); hideMenu(); }));
-
   menu.hidden = false;
   positionPopup(menu, clientX, clientY);
+}
+
+function makeButtonStrip(buttons) {
+  const strip = document.createElement('div');
+  strip.className = 'wte-ctx-btn-strip';
+  for (const { icon, label, active, onClick, disabled } of buttons) {
+    const btn = document.createElement('div');
+    btn.className = 'wte-ctx-btn' +
+      (disabled ? ' wte-ctx-disabled' : '') +
+      (active    ? ' wte-ctx-btn-active' : '');
+    btn.innerHTML = icon;
+    const span = document.createElement('span');
+    span.textContent = label;
+    btn.appendChild(span);
+    if (!disabled) btn.addEventListener('click', e => { e.stopPropagation(); onClick(); });
+    strip.appendChild(btn);
+  }
+  return strip;
+}
+
+function makeSectionLabel(text) {
+  const el = document.createElement('div');
+  el.className = 'wte-ctx-section-label';
+  el.textContent = text;
+  return el;
 }
 
 function makeMenuItem(label, onClick, disabled = false) {
